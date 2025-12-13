@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Loading…</title>
+
+  <!-- Optional early hint for the browser (keep href matching your real MP4) -->
+  <link rel="preload" as="video" href="https://api.softo.io/memes/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#0b0f16;
+      color:#e6edf3;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .box{
+      width:min(560px, 100%);
+      background:#111827;
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px;
+      padding:22px;
+      text-align:center;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    h1{margin:0;font-size:18px;font-weight:800}
+    p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
+
+    .prompt{display:none;margin-top:16px}
+    .btn{
+      display:inline-block;
+      padding:10px 14px;
+      border-radius:10px;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      text-decoration:none;
+      font-weight:800;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.12);
+      user-select:none;
+    }
+
+    video{
+      display:none;
+      width:min(960px, 100%);
+      height:auto;
+      background:#000;
+      border-radius:12px;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+
+    .hide-cursor{cursor:none!important}
+  </style>
+</head>
+<body>
+
+  <div class="box" id="loadingUI">
+    <h1>Loading…</h1>
+    <p id="status">Please wait.</p>
+    <div class="prompt" id="prompt">
+      <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue</a>
+    </div>
+  </div>
+
+  <!-- Video is hidden but present so it can preload in the background -->
+  <video id="vid" playsinline muted>
+    <source id="src" src="https://api.softo.io/memes/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+  </video>
+
+<script>
+  const PROMPT_AFTER_MS = 5000;
+
+  const vid = document.getElementById("vid");
+  const loadingUI = document.getElementById("loadingUI");
+  const prompt = document.getElementById("prompt");
+  const statusEl = document.getElementById("status");
+  const clickContinue = document.getElementById("clickContinue");
+
+  let started = false;
+
+  // =========================
+  // Adaptive preload policy
+  // - API missing => aggressive
+  // - 3g+ => aggressive
+  // - 2g/slow-2g or Save-Data => conservative
+  // =========================
+  function getNetworkProfile() {
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+    // 🚀 API missing → go AGGRESSIVE
+    if (!c) return { mode: "aggressive", reason: "no-api" };
+
+    const saveData = !!c.saveData;
+    const type = (c.effectiveType || "").toLowerCase(); // slow-2g | 2g | 3g | 4g
+    const downlink = typeof c.downlink === "number" ? c.downlink : null;
+
+    // Always respect Save-Data
+    if (saveData) return { mode: "conservative", reason: "save-data", type, downlink };
+
+    // Very slow networks only
+    if (type === "slow-2g" || type === "2g") {
+      return { mode: "conservative", reason: "very-slow", type, downlink };
+    }
+
+    // 🔥 3G AND UP = AGGRESSIVE
+    if (type === "3g" || type === "4g") {
+      return { mode: "aggressive", reason: "3g-or-better", type, downlink };
+    }
+
+    // Fallback on downlink estimate (if provided)
+    if (downlink !== null && downlink >= 2) {
+      return { mode: "aggressive", reason: "downlink>=2mbps", type, downlink };
+    }
+
+    // Default fallback → aggressive
+    return { mode: "aggressive", reason: "default-aggressive", type, downlink };
+  }
+
+  function applyPreloadPolicy(profile) {
+    // "metadata" = minimal, "auto" = browser may fetch more
+    if (profile.mode === "conservative") {
+      vid.preload = "metadata";
+      statusEl.textContent = "Loading…";
+      return { warmup: false };
+    }
+
+    // aggressive
+    vid.preload = "auto";
+    statusEl.textContent = "Loading…";
+    return { warmup: true };
+  }
+
+  function kickOffFetch() {
+    // nudges browser to begin fetch with the chosen preload policy
+    try { vid.load(); } catch (_) {}
+  }
+
+  async function warmupMuted() {
+    // muted autoplay warmup: primes decoding/buffering for fast start
+    try {
+      vid.muted = true;
+      const p = vid.play();
+      if (p && typeof p.then === "function") {
+        await p;
+        vid.pause();
+        try { vid.currentTime = 0; } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  // Start background preload immediately
+  const profile = getNetworkProfile();
+  const { warmup } = applyPreloadPolicy(profile);
+  kickOffFetch();
+  if (warmup) warmupMuted();
+
+  // Re-evaluate if the network changes (if API exists)
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (conn && typeof conn.addEventListener === "function") {
+    conn.addEventListener("change", () => {
+      if (started) return;
+      const p2 = getNetworkProfile();
+      const w2 = applyPreloadPolicy(p2).warmup;
+      kickOffFetch();
+      if (w2) warmupMuted();
+    });
+  }
+
+  // Show click fallback after 5 seconds if no gesture
+  setTimeout(() => {
+    if (!started) prompt.style.display = "block";
+  }, PROMPT_AFTER_MS);
+
+  // =========================
+  // User gesture start: unmute + play + fullscreen
+  // =========================
+  function start(e) {
+    if (started) return;
+    started = true;
+
+    // prevent scroll on Space
+    if (e?.type === "keydown" && (e.code === "Space" || e.key === " ")) e.preventDefault();
+
+    // swap UI
+    loadingUI.remove();
+    vid.style.display = "block";
+
+    // gesture-authorized actions
+    vid.muted = false;
+    vid.volume = 1;
+
+    // keep "gesture context" strong: don't await between these
+    vid.play().catch(() => {});
+    if (vid.requestFullscreen) vid.requestFullscreen().catch(() => {});
+
+    // optional cursor hide once fullscreen starts (simple)
+    document.body.classList.add("hide-cursor");
+  }
+
+  window.addEventListener("keydown", start, true);
+  window.addEventListener("pointerdown", start, true);
+  clickContinue.addEventListener("click", start);
+</script>
+
+</body>
+</html>
