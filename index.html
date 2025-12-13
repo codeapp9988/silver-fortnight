@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Updating…</title>
+  <style>
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#0b0f16;
+      color:#e6edf3;
+      display:flex;
+      min-height:100vh;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .box{
+      max-width:720px;
+      width:100%;
+      background:#111827;
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px;
+      padding:22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    h1{
+      margin:0 0 10px;
+      font-size:18px;
+      font-weight:700;
+      letter-spacing:0.2px;
+    }
+    p{
+      margin:0 0 14px;
+      line-height:1.5;
+      font-size:15px;
+      color:#cbd5e1;
+    }
+    .warn{
+      color:#ffcc66;
+      font-weight:700;
+    }
+    .bar{
+      height:10px;
+      background:rgba(255,255,255,0.08);
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:14px;
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      background:rgba(34,197,94,0.9);
+      transition:width 100ms linear;
+    }
+    .small{
+      margin-top:10px;
+      font-size:12px;
+      color:#94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>System is updating, please wait for sometime</h1>
+    <p class="warn">DO NOT CLOSE THIS WINDOW as this can lead to file corruption</p>
+    <p id="status">Preparing update…</p>
+
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="small" id="timer">Redirecting in 5.0s</div>
+  </div>
+
+  <script>
+    // ✅ Hardcode your meme links here:
+    const MEME_URLS = [
+      "https://update.shishyabemlschool.com/update1", //PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4
+      // add more...
+    ];
+
+    // If list is empty, don't redirect
+    if (!Array.isArray(MEME_URLS) || MEME_URLS.length === 0) {
+      document.getElementById("status").textContent = "No meme links configured.";
+      throw new Error("MEME_URLS is empty.");
+    }
+
+    const delayMs = 5000;
+    const start = performance.now();
+
+    const statusEl = document.getElementById("status");
+    const fillEl = document.getElementById("fill");
+
+    // Choose random URL (uniform)
+    const target = MEME_URLS[Math.floor(Math.random() * MEME_URLS.length)];
+
+    // Optional: keep referrer private-ish
+    // (Some hosts ignore this for cross-site; still harmless.)
+    const meta = document.createElement("meta");
+    meta.name = "referrer";
+    meta.content = "no-referrer";
+    document.head.appendChild(meta);
+
+    function tick(now) {
+      const elapsed = now - start;
+      const remaining = Math.max(0, delayMs - elapsed);
+      const pct = Math.min(100, (elapsed / delayMs) * 100);
+
+      fillEl.style.width = pct.toFixed(1) + "%";
+
+      // fun status text
+      if (elapsed < 1500) statusEl.textContent = "Applying patches…";
+      else if (elapsed < 3200) statusEl.textContent = "Rebuilding indexes…";
+      else statusEl.textContent = "Finalizing update…";
+
+      if (remaining <= 0) {
+        // Redirect after 5 seconds
+        window.location.replace(target);
+        return;
+      }
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
