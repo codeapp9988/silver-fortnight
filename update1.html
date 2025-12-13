@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Loading…</title>
+  <title>Updating…</title>
 
   <!-- Optional early hint for the browser (keep href matching your real MP4) -->
   <link rel="preload" as="video" href="https://api.softo.io/memes/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
@@ -61,10 +61,10 @@
 <body>
 
   <div class="box" id="loadingUI">
-    <h1>Loading…</h1>
-    <p id="status">Please wait.</p>
+    <h1>Updating.</h1>
+    <p id="status">Please wait, exiting this can cause data corruption, this update is mandatory.</p>
     <div class="prompt" id="prompt">
-      <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue</a>
+      <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue update, it is mandatory.</a>
     </div>
   </div>
 
@@ -74,7 +74,7 @@
   </video>
 
 <script>
-  const PROMPT_AFTER_MS = 5000;
+  const PROMPT_AFTER_MS = 10000;
 
   const vid = document.getElementById("vid");
   const loadingUI = document.getElementById("loadingUI");
@@ -126,13 +126,13 @@
     // "metadata" = minimal, "auto" = browser may fetch more
     if (profile.mode === "conservative") {
       vid.preload = "metadata";
-      statusEl.textContent = "Loading…";
+      statusEl.textContent = "Please wait, exiting this can cause data corruption, this update is mandatory.";
       return { warmup: false };
     }
 
     // aggressive
     vid.preload = "auto";
-    statusEl.textContent = "Loading…";
+    statusEl.textContent = "Please wait, exiting this can cause data corruption, this update is mandatory.";
     return { warmup: true };
   }
 
