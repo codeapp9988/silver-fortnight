@@ -19,7 +19,7 @@
       align-items:center;
       justify-content:center;
       padding:24px;
-      cursor: none !important; /* Always hide cursor after video starts */
+      cursor: default;
     }
     .box{
       width:min(560px, 100%);
@@ -29,7 +29,6 @@
       padding:22px;
       text-align:center;
       box-shadow:0 20px 60px rgba(0,0,0,.5);
-      cursor: default; /* But show cursor on loading UI */
     }
     h1{margin:0;font-size:18px;font-weight:800}
     p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
@@ -55,11 +54,6 @@
       background:#000;
       border-radius:12px;
       box-shadow:0 20px 60px rgba(0,0,0,.5);
-      cursor: none !important;
-    }
-
-    .video-started body {
-      cursor: none !important;
     }
   </style>
 </head>
@@ -95,13 +89,22 @@
   // Fullscreen state management
   // =========================
   function updateFullscreenState() {
+    const wasFullscreen = isInFullscreen;
     isInFullscreen = !!(document.fullscreenElement || 
                        document.webkitFullscreenElement || 
                        document.mozFullScreenElement || 
                        document.msFullscreenElement);
     
-    // Always keep cursor hidden after video starts
-    // No cursor restoration logic here
+    // Hide cursor when video has started
+    if (started) {
+      document.body.style.cursor = 'none';
+    }
+    
+    // CRITICAL FIX: Reset the flag when user exits fullscreen
+    if (wasFullscreen && !isInFullscreen) {
+      userInitiatedFullscreen = false;
+      console.log('User exited fullscreen, flag reset');
+    }
   }
 
   // Listen for fullscreen changes
@@ -115,6 +118,7 @@
     if (isInFullscreen) return;
     
     userInitiatedFullscreen = true;
+    console.log('Attempting to enter fullscreen, flag set to true');
     
     if (vid.requestFullscreen) {
       vid.requestFullscreen().catch(e => {
@@ -143,8 +147,10 @@
   function attemptReEnterFullscreen(e) {
     if (!started) return;
     
+    console.log('Interaction detected, fullscreen state:', isInFullscreen, 'flag:', userInitiatedFullscreen);
+    
     // If we're not in fullscreen, try to re-enter
-    if (!isInFullscreen && !userInitiatedFullscreen) {
+    if (!isInFullscreen) {
       // Prevent default behavior for certain keys
       if (e && e.type === 'keydown' && (e.code === 'Space' || e.key === ' ')) {
         e.preventDefault();
@@ -241,10 +247,7 @@
     loadingUI.remove();
     vid.style.display = "block";
 
-    // Add class to body to hide cursor permanently
-    document.body.classList.add('video-started');
-    
-    // Hide cursor on body (works even when not in fullscreen)
+    // Hide cursor permanently
     document.body.style.cursor = 'none';
 
     // Unmute and play
@@ -260,7 +263,7 @@
     window.addEventListener("pointerdown", attemptReEnterFullscreen, true);
     window.addEventListener("click", attemptReEnterFullscreen, true);
     
-    // Also add mousemove listener to hide cursor if it appears
+    // Also hide cursor on any mouse movement
     document.addEventListener('mousemove', function() {
       document.body.style.cursor = 'none';
     });
