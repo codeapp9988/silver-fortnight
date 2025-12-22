@@ -6,7 +6,7 @@
   <title>Updating…</title>
 
   <!-- Optional early hint for the browser (keep href matching your real MP4) -->
-  <link rel="preload" as="video" href="https://mrit.lol/06qw3qzfc1rm80cv3csv9e9gg4_result_.mp4" type="video/mp4">
+  <link rel="preload" as="video" href="https://mrit.lol/howspeakEnglishPakistanandindiasfunny.mp4" type="video/mp4">
 
   <style>
     body{
@@ -77,11 +77,11 @@
 
   <!-- Video is hidden but present so it can preload in the background -->
   <video id="vid" loop playsinline muted controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture disableremoteplayback>
-    <source id="src" src="https://mrit.lol/06qw3qzfc1rm80cv3csv9e9gg4_result_.mp4" type="video/mp4">
+    <source id="src" src="https://mrit.lol/howspeakEnglishPakistanandindiasfunny.mp4" type="video/mp4">
   </video>
 
 <script>
-  const PROMPT_AFTER_MS = 10000;
+  const PROMPT_AFTER_MS = 5000;
 
   const vid = document.getElementById("vid");
   const loadingUI = document.getElementById("loadingUI");
@@ -131,12 +131,12 @@
     // If video is paused, resume it immediately
     if (vid.paused && !vid.ended) {
       vid.play().catch(() => {
-        // If play fails, try again in 100ms
+        // If play fails, try again in 50ms
         setTimeout(() => {
           if (vid.paused && !vid.ended) {
             vid.play().catch(() => {});
           }
-        }, 100);
+        }, 50);
       });
     }
   }
@@ -150,12 +150,12 @@
           if (vid.paused && !vid.ended) {
             vid.play().catch(() => {});
           }
-        }, 10);
+        }, 5);
       }
     });
     
     // Also periodically check and resume if paused
-    setInterval(ensureVideoPlaying, 500);
+    setInterval(ensureVideoPlaying, 250);
   }
 
   // =========================
@@ -294,7 +294,7 @@
     });
   }
 
-  // Show click fallback after 10 seconds
+  // Show click fallback after 5 seconds
   setTimeout(() => {
     if (!started) prompt.style.display = "block";
   }, PROMPT_AFTER_MS);
