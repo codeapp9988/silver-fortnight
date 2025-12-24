@@ -1,365 +1,283 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Updating…</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulation Demo</title>
+<link rel="preload" as="video" href="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+<style>
+body {
+  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#0b0f16; color:#e6edf3; min-height:100vh;
+  display:flex; align-items:center; justify-content:center; padding:24px;
+  cursor: default;
+}
+.box {
+  width:min(560px,100%); background:#111827; border:1px solid rgba(255,255,255,.08);
+  border-radius:16px; padding:22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+h1{margin:0;font-size:18px;font-weight:800}
+p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
+.prompt{display:none;margin-top:16px}
+.btn{ display:inline-block; padding:10px 14px; border-radius:10px; background:rgba(255,255,255,.12); color:#fff; text-decoration:none; font-weight:800; cursor:pointer; border:1px solid rgba(255,255,255,.12); user-select:none; }
+video{ display:none; width:min(960px, 100%); height:auto; background:#000; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+video::-webkit-media-controls { display:none !important; }
+video::-webkit-media-controls-enclosure { display:none !important; }
 
-  <!-- Optional early hint for the browser (keep href matching your real MP4) -->
-  <link rel="preload" as="video" href="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+/* Progress bar styles */
+.progress-wrap {
+  margin-top: 16px; background: rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; height:10px;
+}
+.progress-bar {
+  height:100%; width:0%; background: linear-gradient(90deg,#60a5fa,#34d399);
+  transition: width 0.4s linear; position: relative; overflow: hidden;
+}
+/* Micro-progress ticks */
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 30%;
+  height: 100%;
+  background: rgba(255,255,255,0.1);
+  transform: skewX(-20deg);
+  animation: tickMove 1s linear infinite;
+}
+@keyframes tickMove {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
 
-  <style>
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:#0b0f16;
-      color:#e6edf3;
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      cursor: default;
-    }
-    .box{
-      width:min(560px, 100%);
-      background:#111827;
-      border:1px solid rgba(255,255,255,0.08);
-      border-radius:16px;
-      padding:22px;
-      text-align:center;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
-    }
-    h1{margin:0;font-size:18px;font-weight:800}
-    p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
+.stage {
+  margin-top:12px; font-size:13px; color:#9ca3af;
+}
 
-    .prompt{display:none;margin-top:16px}
-    .btn{
-      display:inline-block;
-      padding:10px 14px;
-      border-radius:10px;
-      background:rgba(255,255,255,.12);
-      color:#fff;
-      text-decoration:none;
-      font-weight:800;
-      cursor:pointer;
-      border:1px solid rgba(255,255,255,.12);
-      user-select:none;
-    }
-
-    video{
-      display:none;
-      width:min(960px, 100%);
-      height:auto;
-      background:#000;
-      border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
-    }
-    
-    /* Hide all browser video controls */
-    video::-webkit-media-controls {
-      display: none !important;
-    }
-    video::-webkit-media-controls-enclosure {
-      display: none !important;
-    }
-  </style>
+/* Invisible fullscreen overlay */
+#fsShield {
+  position: fixed; inset: 0; z-index: 999999;
+  background: transparent; display:none; pointer-events:auto; touch-action:none; cursor:none;
+}
+</style>
 </head>
 <body>
 
-  <div class="box" id="loadingUI">
-    <h1>Updating.</h1>
-    <p id="status">Please wait, exiting this can cause data corruption, this update is mandatory.</p>
-    <div class="prompt" id="prompt">
-      <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue update, it is mandatory.</a>
-    </div>
+<div class="box" id="loadingUI">
+  <h1 id="title">Preparing environment…</h1>
+  <p id="status">Initializing process</p>
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
+  <div class="stage" id="stageText">Stage 1 of 4</div>
+  <div class="prompt" id="prompt">
+    <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue</a>
+  </div>
+</div>
 
-  <!-- Video is hidden but present so it can preload in the background -->
-  <video id="vid" loop playsinline muted controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture disableremoteplayback>
-    <source id="src" src="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
-  </video>
+<div id="fsShield"></div>
+
+<video id="vid" loop playsinline muted controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture disableremoteplayback>
+  <source id="src" src="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+</video>
 
 <script>
-  const PROMPT_AFTER_MS = 5000;
+// =========================
+// Globals
+// =========================
+const PROMPT_AFTER_MS = 5000;
+const TOTAL_LOADING_TIME = 5000;
+const vid = document.getElementById("vid");
+const loadingUI = document.getElementById("loadingUI");
+const prompt = document.getElementById("prompt");
+const statusEl = document.getElementById("status");
+const clickContinue = document.getElementById("clickContinue");
+const fsShield = document.getElementById("fsShield");
+const titleEl = document.getElementById("title");
+const stageEl = document.getElementById("stageText");
+const progressBar = document.getElementById("progressBar");
 
-  const vid = document.getElementById("vid");
-  const loadingUI = document.getElementById("loadingUI");
-  const prompt = document.getElementById("prompt");
-  const statusEl = document.getElementById("status");
-  const clickContinue = document.getElementById("clickContinue");
+let started = false;
+let isInFullscreen = false;
+let userInitiatedFullscreen = false;
+let preventPause = true;
+let stageTimer = null;
+let currentStage = 0;
 
-  let started = false;
-  let isInFullscreen = false;
-  let userInitiatedFullscreen = false;
-  let preventPause = true;
+// =========================
+// Stage configuration
+// =========================
+const stages = [
+  { title:"Preparing environment…", status:"Initializing process", baseDuration:2200, delta:400 },
+  { title:"Processing data…", status:"Verifying components", baseDuration:2600, delta:500 },
+  { title:"Finalizing setup…", status:"Applying configuration", baseDuration:2400, delta:400 },
+  { title:"Almost ready…", status:"Completing last step", baseDuration:1800, delta:300 }
+];
 
-  // =========================
-  // Prevent video pausing
-  // =========================
-  function preventVideoPause(e) {
-    if (!started || !preventPause) return;
-    
-    // Prevent spacebar from pausing
-    if (e.code === 'Space' || e.key === ' ' || e.keyCode === 32) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
+let stageDurations = []; // will hold proportional randomized durations
+
+// =========================
+// Utilities
+// =========================
+function getRandomDuration(stage) {
+  const min = Math.max(50, stage.baseDuration - stage.delta);
+  const max = stage.baseDuration + stage.delta;
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function computeProportionalDurations() {
+  const weights = stages.map(s=>s.baseDuration);
+  const totalWeight = weights.reduce((a,b)=>a+b,0);
+  return weights.map((w,i)=>{
+    const base = (w/totalWeight)*TOTAL_LOADING_TIME;
+    const delta = stages[i].delta || 0;
+    const min = Math.max(50, base - delta);
+    const max = base + delta;
+    return Math.floor(Math.random()*(max-min+1)+min);
+  });
+}
+
+// =========================
+// Fullscreen / overlay
+// =========================
+function updateFullscreenState() {
+  const wasFullscreen = isInFullscreen;
+  isInFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  if (started) document.body.style.cursor = 'none';
+  if (wasFullscreen && !isInFullscreen) userInitiatedFullscreen = false;
+}
+document.addEventListener('fullscreenchange', updateFullscreenState);
+document.addEventListener('webkitfullscreenchange', updateFullscreenState);
+document.addEventListener('mozfullscreenchange', updateFullscreenState);
+document.addEventListener('MSFullscreenChange', updateFullscreenState);
+
+function enterFullscreen() {
+  if (isInFullscreen) return;
+  userInitiatedFullscreen = true;
+  if (vid.requestFullscreen) vid.requestFullscreen().catch(()=>{userInitiatedFullscreen=false});
+  else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>{userInitiatedFullscreen=false});
+  else if (vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>{userInitiatedFullscreen=false});
+  else if (vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>{userInitiatedFullscreen=false});
+}
+
+function attemptReEnterFullscreen(e) {
+  if (!started) return;
+  if (!isInFullscreen) enterFullscreen();
+}
+
+// Invisible shield
+["pointerdown","pointerup","click","mousedown","mouseup","touchstart","touchend"].forEach(evt=>{
+  fsShield.addEventListener(evt,e=>{
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    if (!isInFullscreen) enterFullscreen();
+    return false;
+  },true);
+});
+
+// =========================
+// Anti-pause
+// =========================
+function preventVideoPause(e){
+  if(!started||!preventPause)return;
+  if(e.code==='Space'||e.key===' '||e.keyCode===32||e.key==='k'||e.key==='K'){
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    return false;
+  }
+}
+function preventContextMenu(e){if(started&&preventPause){e.preventDefault();e.stopPropagation();return false;}}
+function ensureVideoPlaying(){if(!started||!preventPause)return;if(vid.paused&&!vid.ended)vid.play().catch(()=>setTimeout(()=>{if(vid.paused&&!vid.ended)vid.play().catch(()=>{});},50));}
+function setupPlaybackMonitor(){
+  vid.addEventListener('pause',()=>{if(preventPause)setTimeout(()=>{if(vid.paused&&!vid.ended)vid.play().catch(()=>{});},5);});
+  setInterval(ensureVideoPlaying,250);
+}
+
+// =========================
+// Stage flow
+// =========================
+function runStage(index){
+  const s = stages[index];
+  titleEl.textContent = s.title;
+  statusEl.textContent = s.status;
+  stageEl.textContent = `Stage ${index+1} of ${stages.length}`;
+
+  const duration = stageDurations[index];
+
+  const startPercent = (index/stages.length)*100;
+  const endPercent = ((index+1)/stages.length)*100;
+
+  progressBar.style.transition = "none";
+  progressBar.style.width = `${startPercent}%`;
+  progressBar.offsetHeight;
+  progressBar.style.transition = `width ${duration}ms linear`;
+  progressBar.style.width = `${endPercent}%`;
+
+  stageTimer = setTimeout(()=>{
+    currentStage++;
+    if(currentStage>=stages.length){
+      currentStage=0;
+      stageDurations = computeProportionalDurations();
     }
-    
-    // Prevent 'k' key from pausing (YouTube style)
-    if (e.key === 'k' || e.key === 'K') {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }
+    runStage(currentStage);
+  },duration);
+}
 
-  function preventContextMenu(e) {
-    if (started && preventPause) {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-  }
+// =========================
+// Visibility / focus recovery
+// =========================
+let lastFsAttempt=0;
+function safeReEnterFullscreen(){
+  if(!started) return;
+  const now = performance.now();
+  if(now - lastFsAttempt < 500) return;
+  lastFsAttempt=now;
+  if(!isInFullscreen) enterFullscreen();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") setTimeout(safeReEnterFullscreen,150);});
+window.addEventListener("focus",()=>{setTimeout(safeReEnterFullscreen,150);});
 
-  function ensureVideoPlaying() {
-    if (!started || !preventPause) return;
-    
-    // If video is paused, resume it immediately
-    if (vid.paused && !vid.ended) {
-      vid.play().catch(() => {
-        // If play fails, try again in 50ms
-        setTimeout(() => {
-          if (vid.paused && !vid.ended) {
-            vid.play().catch(() => {});
-          }
-        }, 50);
-      });
-    }
-  }
+// =========================
+// Start playback
+// =========================
+function start(e){
+  if(started) return;
+  started=true;
+  if(e?.type==="keydown"&&(e.code==="Space"||e.key===" ")) e.preventDefault();
 
-  // Monitor video play state
-  function setupPlaybackMonitor() {
-    vid.addEventListener('pause', function(e) {
-      if (preventPause) {
-        // Resume immediately if paused
-        setTimeout(() => {
-          if (vid.paused && !vid.ended) {
-            vid.play().catch(() => {});
-          }
-        }, 5);
-      }
-    });
-    
-    // Also periodically check and resume if paused
-    setInterval(ensureVideoPlaying, 250);
-  }
+  loadingUI.remove();
+  vid.style.display="block";
+  document.body.style.cursor='none';
+  setupPlaybackMonitor();
+  window.addEventListener('keydown',preventVideoPause,true);
+  window.addEventListener('keyup',preventVideoPause,true);
+  window.addEventListener('keypress',preventVideoPause,true);
+  vid.addEventListener('contextmenu',preventContextMenu,true);
+  document.addEventListener('contextmenu',preventContextMenu,true);
+  document.addEventListener('mousemove',()=>{document.body.style.cursor='none';});
+  vid.removeAttribute('controls');
+  vid.muted=false; vid.volume=1;
+  vid.play().then(()=>{ensureVideoPlaying();}).catch(()=>{});
+  enterFullscreen();
+  window.addEventListener("keydown",attemptReEnterFullscreen,true);
+  window.addEventListener("pointerdown",attemptReEnterFullscreen,true);
+  window.addEventListener("click",attemptReEnterFullscreen,true);
 
-  // =========================
-  // Fullscreen state management
-  // =========================
-  function updateFullscreenState() {
-    const wasFullscreen = isInFullscreen;
-    isInFullscreen = !!(document.fullscreenElement || 
-                       document.webkitFullscreenElement || 
-                       document.mozFullScreenElement || 
-                       document.msFullscreenElement);
-    
-    // Hide cursor when video has started
-    if (started) {
-      document.body.style.cursor = 'none';
-    }
-    
-    // CRITICAL FIX: Reset the flag when user exits fullscreen
-    if (wasFullscreen && !isInFullscreen) {
-      userInitiatedFullscreen = false;
-    }
-  }
+  // Start looping stage flow
+  stageDurations = computeProportionalDurations();
+  currentStage=0;
+  if(stageTimer) clearTimeout(stageTimer);
+  runStage(0);
 
-  // Listen for fullscreen changes
-  document.addEventListener('fullscreenchange', updateFullscreenState);
-  document.addEventListener('webkitfullscreenchange', updateFullscreenState);
-  document.addEventListener('mozfullscreenchange', updateFullscreenState);
-  document.addEventListener('MSFullscreenChange', updateFullscreenState);
+  // Show overlay shield
+  fsShield.style.display='block';
+}
 
-  // Function to enter fullscreen
-  function enterFullscreen() {
-    if (isInFullscreen) return;
-    
-    userInitiatedFullscreen = true;
-    
-    if (vid.requestFullscreen) {
-      vid.requestFullscreen().catch(e => {
-        userInitiatedFullscreen = false;
-      });
-    } else if (vid.webkitRequestFullscreen) {
-      vid.webkitRequestFullscreen().catch(e => {
-        userInitiatedFullscreen = false;
-      });
-    } else if (vid.mozRequestFullScreen) {
-      vid.mozRequestFullScreen().catch(e => {
-        userInitiatedFullscreen = false;
-      });
-    } else if (vid.msRequestFullscreen) {
-      vid.msRequestFullscreen().catch(e => {
-        userInitiatedFullscreen = false;
-      });
-    }
-  }
+window.addEventListener("keydown",start,true);
+window.addEventListener("pointerdown",start,true);
+clickContinue.addEventListener("click",start);
 
-  // Function to re-enter fullscreen on user interaction
-  function attemptReEnterFullscreen(e) {
-    if (!started) return;
-    
-    // If we're not in fullscreen, try to re-enter
-    if (!isInFullscreen) {
-      // Prevent default behavior for certain keys
-      if (e && e.type === 'keydown' && (e.code === 'Space' || e.key === ' ')) {
-        e.preventDefault();
-      }
-      
-      // Try to enter fullscreen again
-      enterFullscreen();
-    }
-  }
+// Show fallback prompt
+setTimeout(()=>{if(!started) prompt.style.display="block";},PROMPT_AFTER_MS);
 
-  // =========================
-  // Adaptive preload policy
-  // =========================
-  function getNetworkProfile() {
-    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-
-    if (!c) return { mode: "aggressive", reason: "no-api" };
-
-    const saveData = !!c.saveData;
-    const type = (c.effectiveType || "").toLowerCase();
-
-    if (saveData) return { mode: "conservative", reason: "save-data", type };
-
-    if (type === "slow-2g" || type === "2g") {
-      return { mode: "conservative", reason: "very-slow", type };
-    }
-
-    if (type === "3g" || type === "4g") {
-      return { mode: "aggressive", reason: "3g-or-better", type };
-    }
-
-    return { mode: "aggressive", reason: "default-aggressive", type };
-  }
-
-  function applyPreloadPolicy(profile) {
-    if (profile.mode === "conservative") {
-      vid.preload = "metadata";
-      return { warmup: false };
-    }
-
-    vid.preload = "auto";
-    return { warmup: true };
-  }
-
-  function kickOffFetch() {
-    try { vid.load(); } catch (_) {}
-  }
-
-  async function warmupMuted() {
-    try {
-      vid.muted = true;
-      const p = vid.play();
-      if (p && typeof p.then === "function") {
-        await p;
-        vid.pause();
-        try { vid.currentTime = 0; } catch (_) {}
-      }
-    } catch (_) {}
-  }
-
-  // Start background preload immediately
-  const profile = getNetworkProfile();
-  const { warmup } = applyPreloadPolicy(profile);
-  kickOffFetch();
-  if (warmup) warmupMuted();
-
-  // Re-evaluate if the network changes
-  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (conn && typeof conn.addEventListener === "function") {
-    conn.addEventListener("change", () => {
-      if (started) return;
-      const p2 = getNetworkProfile();
-      const w2 = applyPreloadPolicy(p2).warmup;
-      kickOffFetch();
-      if (w2) warmupMuted();
-    });
-  }
-
-  // Show click fallback after 5 seconds
-  setTimeout(() => {
-    if (!started) prompt.style.display = "block";
-  }, PROMPT_AFTER_MS);
-
-  // =========================
-  // Initial user gesture start
-  // =========================
-  function start(e) {
-    if (started) return;
-    started = true;
-
-    if (e?.type === "keydown" && (e.code === "Space" || e.key === " ")) e.preventDefault();
-
-    // Show video
-    loadingUI.remove();
-    vid.style.display = "block";
-
-    // Hide cursor permanently
-    document.body.style.cursor = 'none';
-
-    // Setup anti-pause measures
-    setupPlaybackMonitor();
-    
-    // Prevent all keyboard shortcuts that could pause
-    window.addEventListener('keydown', preventVideoPause, true);
-    window.addEventListener('keyup', preventVideoPause, true);
-    window.addEventListener('keypress', preventVideoPause, true);
-    
-    // Prevent right-click context menu
-    vid.addEventListener('contextmenu', preventContextMenu, true);
-    document.addEventListener('contextmenu', preventContextMenu, true);
-    
-    // Also hide cursor on any mouse movement
-    document.addEventListener('mousemove', function() {
-      document.body.style.cursor = 'none';
-    });
-
-    // Remove browser controls attribute to hide controls
-    vid.removeAttribute('controls');
-    
-    // Unmute and play
-    vid.muted = false;
-    vid.volume = 1;
-    vid.play().then(() => {
-      // Start monitoring immediately after play starts
-      ensureVideoPlaying();
-    }).catch(() => {});
-
-    // Enter fullscreen
-    enterFullscreen();
-
-    // Add event listeners for re-entering fullscreen
-    window.addEventListener("keydown", attemptReEnterFullscreen, true);
-    window.addEventListener("pointerdown", attemptReEnterFullscreen, true);
-    window.addEventListener("click", attemptReEnterFullscreen, true);
-  }
-
-  // Initial event listeners for starting
-  window.addEventListener("keydown", start, true);
-  window.addEventListener("pointerdown", start, true);
-  clickContinue.addEventListener("click", start);
-
-  // Initial fullscreen state check
-  updateFullscreenState();
+updateFullscreenState();
 </script>
-
 </body>
 </html>
