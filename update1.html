@@ -18,21 +18,32 @@ body {
 }
 h1{margin:0;font-size:18px;font-weight:800}
 p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
-.prompt{display:none;margin-top:16px}
+
+/* Prompt button fade-in */
+.prompt {
+  display: none;
+  margin-top: 16px;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+.prompt.show {
+  display: block;
+  opacity: 1;
+}
+
 .btn{ display:inline-block; padding:10px 14px; border-radius:10px; background:rgba(255,255,255,.12); color:#fff; text-decoration:none; font-weight:800; cursor:pointer; border:1px solid rgba(255,255,255,.12); user-select:none; }
+
 video{ display:none; width:min(960px, 100%); height:auto; background:#000; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
 video::-webkit-media-controls { display:none !important; }
 video::-webkit-media-controls-enclosure { display:none !important; }
 
-/* Progress bar styles */
+/* Progress bar */
 .progress-wrap {
   margin-top: 16px; background: rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; height:10px;
 }
 .progress-bar {
-  height:100%; width:0%; background: linear-gradient(90deg,#60a5fa,#34d399);
-  transition: width 0.4s linear; position: relative; overflow: hidden;
+  height:100%; width:0%; position: relative; overflow: hidden;
 }
-/* Micro-progress ticks */
 .progress-bar::after {
   content: '';
   position: absolute;
@@ -44,14 +55,27 @@ video::-webkit-media-controls-enclosure { display:none !important; }
   transform: skewX(-20deg);
   animation: tickMove 1s linear infinite;
 }
+.progress-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -20%;
+  width: 20%;
+  height: 100%;
+  background: rgba(255,255,255,0.15);
+  transform: skewX(-20deg);
+  animation: shimmer 0.8s linear infinite;
+}
 @keyframes tickMove {
   0% { left: -30%; }
   100% { left: 100%; }
 }
-
-.stage {
-  margin-top:12px; font-size:13px; color:#9ca3af;
+@keyframes shimmer {
+  0% { left: -20%; }
+  100% { left: 100%; }
 }
+
+.stage { margin-top:12px; font-size:13px; color:#9ca3af; }
 
 /* Invisible fullscreen overlay */
 #fsShield {
@@ -81,11 +105,8 @@ video::-webkit-media-controls-enclosure { display:none !important; }
 </video>
 
 <script>
-// =========================
-// Globals
-// =========================
-const PROMPT_AFTER_MS = 5000;
 const TOTAL_LOADING_TIME = 5000;
+
 const vid = document.getElementById("vid");
 const loadingUI = document.getElementById("loadingUI");
 const prompt = document.getElementById("prompt");
@@ -96,88 +117,68 @@ const titleEl = document.getElementById("title");
 const stageEl = document.getElementById("stageText");
 const progressBar = document.getElementById("progressBar");
 
-let started = false;
-let isInFullscreen = false;
-let userInitiatedFullscreen = false;
-let preventPause = true;
-let stageTimer = null;
-let currentStage = 0;
+let started=false, isInFullscreen=false, userInitiatedFullscreen=false;
+let preventPause=true, stageTimer=null, currentStage=0;
 
-// =========================
-// Stage configuration
-// =========================
-const stages = [
-  { title:"Preparing environment…", status:"Initializing process", baseDuration:2200, delta:400 },
-  { title:"Processing data…", status:"Verifying components", baseDuration:2600, delta:500 },
-  { title:"Finalizing setup…", status:"Applying configuration", baseDuration:2400, delta:400 },
-  { title:"Almost ready…", status:"Completing last step", baseDuration:1800, delta:300 }
+const stages=[
+  {title:"Preparing environment…",status:"Initializing process",baseDuration:2200,delta:400},
+  {title:"Processing data…",status:"Verifying components",baseDuration:2600,delta:500},
+  {title:"Finalizing setup…",status:"Applying configuration",baseDuration:2400,delta:400},
+  {title:"Almost ready…",status:"Completing last step",baseDuration:1800,delta:300}
 ];
 
-let stageDurations = []; // will hold proportional randomized durations
+const stageColors=[
+  ["#60a5fa","#34d399"],
+  ["#facc15","#f97316"],
+  ["#a78bfa","#f472b6"],
+  ["#f87171","#4ade80"]
+];
 
-// =========================
-// Utilities
-// =========================
-function getRandomDuration(stage) {
-  const min = Math.max(50, stage.baseDuration - stage.delta);
-  const max = stage.baseDuration + stage.delta;
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
+let stageDurations=[];
 
-function computeProportionalDurations() {
-  const weights = stages.map(s=>s.baseDuration);
-  const totalWeight = weights.reduce((a,b)=>a+b,0);
+// Compute proportional durations ≤ TOTAL_LOADING_TIME
+function computeProportionalDurations(){
+  const weights=stages.map(s=>s.baseDuration);
+  const totalWeight=weights.reduce((a,b)=>a+b,0);
   return weights.map((w,i)=>{
-    const base = (w/totalWeight)*TOTAL_LOADING_TIME;
-    const delta = stages[i].delta || 0;
-    const min = Math.max(50, base - delta);
-    const max = base + delta;
+    const base=(w/totalWeight)*TOTAL_LOADING_TIME;
+    const delta=stages[i].delta||0;
+    const min=Math.max(50,base-delta);
+    const max=base+delta;
     return Math.floor(Math.random()*(max-min+1)+min);
   });
 }
 
-// =========================
-// Fullscreen / overlay
-// =========================
-function updateFullscreenState() {
-  const wasFullscreen = isInFullscreen;
-  isInFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-  if (started) document.body.style.cursor = 'none';
-  if (wasFullscreen && !isInFullscreen) userInitiatedFullscreen = false;
+// =================== Fullscreen / overlay ===================
+function updateFullscreenState(){
+  const wasFullscreen=isInFullscreen;
+  isInFullscreen=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
+  if(started) document.body.style.cursor='none';
+  if(wasFullscreen && !isInFullscreen) userInitiatedFullscreen=false;
 }
-document.addEventListener('fullscreenchange', updateFullscreenState);
-document.addEventListener('webkitfullscreenchange', updateFullscreenState);
-document.addEventListener('mozfullscreenchange', updateFullscreenState);
-document.addEventListener('MSFullscreenChange', updateFullscreenState);
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(ev=>document.addEventListener(ev,updateFullscreenState));
 
-function enterFullscreen() {
-  if (isInFullscreen) return;
-  userInitiatedFullscreen = true;
-  if (vid.requestFullscreen) vid.requestFullscreen().catch(()=>{userInitiatedFullscreen=false});
-  else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>{userInitiatedFullscreen=false});
-  else if (vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>{userInitiatedFullscreen=false});
-  else if (vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>{userInitiatedFullscreen=false});
+function enterFullscreen(){
+  if(isInFullscreen) return;
+  userInitiatedFullscreen=true;
+  if(vid.requestFullscreen) vid.requestFullscreen().catch(()=>userInitiatedFullscreen=false);
+  else if(vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>userInitiatedFullscreen=false);
+  else if(vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>userInitiatedFullscreen=false);
+  else if(vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>userInitiatedFullscreen=false);
 }
+function attemptReEnterFullscreen(){if(!started) return;if(!isInFullscreen) enterFullscreen();}
 
-function attemptReEnterFullscreen(e) {
-  if (!started) return;
-  if (!isInFullscreen) enterFullscreen();
-}
-
-// Invisible shield
 ["pointerdown","pointerup","click","mousedown","mouseup","touchstart","touchend"].forEach(evt=>{
   fsShield.addEventListener(evt,e=>{
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-    if (!isInFullscreen) enterFullscreen();
+    if(!isInFullscreen) enterFullscreen();
     return false;
   },true);
 });
 
-// =========================
-// Anti-pause
-// =========================
+// =================== Anti-pause ===================
 function preventVideoPause(e){
-  if(!started||!preventPause)return;
+  if(!started||!preventPause) return;
   if(e.code==='Space'||e.key===' '||e.keyCode===32||e.key==='k'||e.key==='K'){
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     return false;
@@ -185,58 +186,66 @@ function preventVideoPause(e){
 }
 function preventContextMenu(e){if(started&&preventPause){e.preventDefault();e.stopPropagation();return false;}}
 function ensureVideoPlaying(){if(!started||!preventPause)return;if(vid.paused&&!vid.ended)vid.play().catch(()=>setTimeout(()=>{if(vid.paused&&!vid.ended)vid.play().catch(()=>{});},50));}
-function setupPlaybackMonitor(){
-  vid.addEventListener('pause',()=>{if(preventPause)setTimeout(()=>{if(vid.paused&&!vid.ended)vid.play().catch(()=>{});},5);});
-  setInterval(ensureVideoPlaying,250);
+function setupPlaybackMonitor(){vid.addEventListener('pause',()=>{if(preventPause)setTimeout(()=>{if(vid.paused&&!vid.ended)vid.play().catch(()=>{});},5);}); setInterval(ensureVideoPlaying,250);}
+
+// =================== Easing ===================
+function easeOutCubic(t){return 1 - Math.pow(1 - t,3);}
+
+// =================== Progress animation with color ===================
+function animateProgressBar(startPercent, endPercent, duration, stageIndex){
+  const startTime = performance.now();
+  const colors = stageColors[stageIndex];
+  function step(now){
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = easeOutCubic(t);
+    const currentPercent = startPercent + (endPercent - startPercent) * eased;
+    
+    progressBar.style.background = `linear-gradient(90deg, ${colors[0]} ${currentPercent}%, ${colors[1]} 100%)`;
+    progressBar.style.width = currentPercent + "%";
+    
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
-// =========================
-// Stage flow
-// =========================
+// =================== Stage flow ===================
 function runStage(index){
-  const s = stages[index];
-  titleEl.textContent = s.title;
-  statusEl.textContent = s.status;
-  stageEl.textContent = `Stage ${index+1} of ${stages.length}`;
+  const s=stages[index];
+  titleEl.textContent=s.title;
+  statusEl.textContent=s.status;
+  stageEl.textContent=`Stage ${index+1} of ${stages.length}`;
 
-  const duration = stageDurations[index];
+  const duration=stageDurations[index];
+  const startPercent=(index/stages.length)*100;
+  const endPercent=((index+1)/stages.length)*100;
 
-  const startPercent = (index/stages.length)*100;
-  const endPercent = ((index+1)/stages.length)*100;
+  animateProgressBar(startPercent,endPercent,duration,index);
 
-  progressBar.style.transition = "none";
-  progressBar.style.width = `${startPercent}%`;
-  progressBar.offsetHeight;
-  progressBar.style.transition = `width ${duration}ms linear`;
-  progressBar.style.width = `${endPercent}%`;
-
-  stageTimer = setTimeout(()=>{
+  stageTimer=setTimeout(()=>{
     currentStage++;
     if(currentStage>=stages.length){
-      currentStage=0;
-      stageDurations = computeProportionalDurations();
+      // Last stage finished → show continue button with fade
+      prompt.classList.add("show");
+      return;
     }
     runStage(currentStage);
   },duration);
 }
 
-// =========================
-// Visibility / focus recovery
-// =========================
+// =================== Visibility/focus recovery ===================
 let lastFsAttempt=0;
 function safeReEnterFullscreen(){
   if(!started) return;
-  const now = performance.now();
-  if(now - lastFsAttempt < 500) return;
+  const now=performance.now();
+  if(now-lastFsAttempt<500) return;
   lastFsAttempt=now;
   if(!isInFullscreen) enterFullscreen();
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") setTimeout(safeReEnterFullscreen,150);});
 window.addEventListener("focus",()=>{setTimeout(safeReEnterFullscreen,150);});
 
-// =========================
-// Start playback
-// =========================
+// =================== Start playback ===================
 function start(e){
   if(started) return;
   started=true;
@@ -246,9 +255,7 @@ function start(e){
   vid.style.display="block";
   document.body.style.cursor='none';
   setupPlaybackMonitor();
-  window.addEventListener('keydown',preventVideoPause,true);
-  window.addEventListener('keyup',preventVideoPause,true);
-  window.addEventListener('keypress',preventVideoPause,true);
+  ['keydown','keyup','keypress'].forEach(ev=>window.addEventListener(ev,preventVideoPause,true));
   vid.addEventListener('contextmenu',preventContextMenu,true);
   document.addEventListener('contextmenu',preventContextMenu,true);
   document.addEventListener('mousemove',()=>{document.body.style.cursor='none';});
@@ -256,26 +263,18 @@ function start(e){
   vid.muted=false; vid.volume=1;
   vid.play().then(()=>{ensureVideoPlaying();}).catch(()=>{});
   enterFullscreen();
-  window.addEventListener("keydown",attemptReEnterFullscreen,true);
-  window.addEventListener("pointerdown",attemptReEnterFullscreen,true);
-  window.addEventListener("click",attemptReEnterFullscreen,true);
+  ['keydown','pointerdown','click'].forEach(ev=>window.addEventListener(ev,attemptReEnterFullscreen,true));
 
-  // Start looping stage flow
-  stageDurations = computeProportionalDurations();
+  stageDurations=computeProportionalDurations();
   currentStage=0;
   if(stageTimer) clearTimeout(stageTimer);
   runStage(0);
 
-  // Show overlay shield
   fsShield.style.display='block';
 }
-
 window.addEventListener("keydown",start,true);
 window.addEventListener("pointerdown",start,true);
 clickContinue.addEventListener("click",start);
-
-// Show fallback prompt
-setTimeout(()=>{if(!started) prompt.style.display="block";},PROMPT_AFTER_MS);
 
 updateFullscreenState();
 </script>
