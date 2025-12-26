@@ -1,289 +1,284 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Updating…</title>
+<link rel="preload" as="video" href="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
 <style>
-body {
-  margin: 0;
-  background: #0b0f16;
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#0b0f16;
+  color:#e6edf3;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
   cursor: default;
 }
-.box {
-  position: relative;
-  width: min(520px, 92%);
-  background: #111827;
-  border-radius: 16px;
-  padding: 22px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.6);
-  text-align: center;
-  z-index: 10;
+.box{
+  width:min(560px, 100%);
+  background:#111827;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:22px;
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
-h1 { margin: 0; font-size: 18px; font-weight: 800; }
-p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
-
-.bar { margin-top: 18px; height: 10px; background: #020617; border-radius: 999px; overflow: hidden; position: relative; }
-.fill { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.1s linear; }
-
-.stage { margin-top: 10px; font-size: 13px; color: #9ca3af; min-height: 18px; }
-
-.prompt { display: none; margin-top: 18px; }
-.btn { display: inline-block; padding: 10px 14px; border-radius: 10px; font-weight:800; cursor:pointer; user-select:none; color: #fff; text-decoration:none; pointer-events:auto; }
-.btn[aria-disabled="true"] { opacity:.55; pointer-events:none; }
-
-/* Pulsing button */
-#clickContinue {
-  background: linear-gradient(135deg,#22c55e,#16a34a);
-  animation: btnPulse 1.2s ease-in-out infinite alternate;
+h1{margin:0;font-size:18px;font-weight:800}
+p{margin:10px 0 0;color:#cbd5e1;font-size:14px;line-height:1.45}
+.prompt{display:none;margin-top:16px}
+.btn{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  text-decoration:none;
+  font-weight:800;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);
+  user-select:none;
 }
-@keyframes btnPulse {
-  0% { transform: scale(1); box-shadow: 0 0 6px rgba(34,197,94,0.6); }
-  50% { transform: scale(1.04); box-shadow: 0 0 12px rgba(34,197,94,0.9); }
-  100% { transform: scale(1); box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+video{
+  display:none;
+  width:min(960px, 100%);
+  height:auto;
+  background:#000;
+  border-radius:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
 }
+video::-webkit-media-controls { display: none !important; }
+video::-webkit-media-controls-enclosure { display: none !important; }
 
-/* Pulsing icon */
-.pulse-icon {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #facc15;
-  margin-right: 6px;
-  animation: pulse 1s infinite ease-in-out;
-  vertical-align: middle;
-}
-@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.6;}50%{transform:scale(1.4);opacity:1;} }
-
-/* Fan / thermal icon */
-.fan-icon {
-  display:inline-block;width:12px;height:12px;border:2px solid #facc15;border-top-color:transparent;border-radius:50%;margin-right:6px;vertical-align:middle;animation:fan-spin 0.8s linear infinite;
-}
-@keyframes fan-spin {from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-
-/* Fake logs overlay */
-.logs-overlay {
-  position:absolute; top:-160px; left:0; width:100%; max-height:160px; overflow:hidden; font-size:12px; line-height:1.2; color:#60a5fa; text-align:left; padding:4px; background:rgba(0,0,0,0.2); border-radius:6px;
+/* Fullscreen overlay */
+#fullscreenOverlay {
+  display:none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  pointer-events: auto;
+  background: rgba(0,0,0,0);
 }
 
-/* Video fullscreen */
-#vid { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0; display:none; }
-
-/* Fullscreen shield */
-#fullscreenShield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9998; cursor:default; }
-
-/* Windows 10 final logo screen */
-.win10 { background:#0078d7; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; }
-.win-logo { width:64px; height:64px; margin-bottom:16px; opacity:0; animation:logoFadeIn 1.2s ease forwards; }
-.win-logo svg { width:100%; height:100%; fill:#fff; }
-@keyframes logoFadeIn { 0%{opacity:0; transform:scale(0.96);} 100%{opacity:1; transform:scale(1);} }
-
-.win10-dots { display:flex; justify-content:center; gap:6px; margin-top:12px; }
-.win10-dots span { width:10px; height:10px; background:#fff; border-radius:50%; opacity:.25; animation:dotSpin 1.4s infinite ease-in-out; }
-.win10-dots span:nth-child(2){animation-delay:.15s} 
-.win10-dots span:nth-child(3){animation-delay:.3s} 
-.win10-dots span:nth-child(4){animation-delay:.45s}
-@keyframes dotSpin {0%,80%,100%{opacity:.25}40%{opacity:1}}
-
-/* Hi / Getting ready screen */
-.avatar-container { display:flex; flex-direction:column; align-items:center; justify-content:center; margin-top:24px; opacity:0; transition:opacity 1s ease; }
-.avatar-container img { width:96px; height:96px; border-radius:50%; filter:blur(6px); transition:filter 1.2s ease; }
-.hi-text { font-size:22px; margin-top:16px; font-weight:600; text-align:center; }
-.subtext { font-size:14px; color:#d1d5db; margin-top:4px; text-align:center; }
-
-/* Fan / thermal warnings */
-.warning { color: #facc15; font-size: 13px; margin-top: 6px; font-style: italic; opacity: 0.9; }
+/* Tooltip warning */
+#fullscreenTooltip {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 69, 0, 0.85);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10000;
+}
+#fullscreenTooltip.show {
+  opacity: 1;
+}
 </style>
 </head>
-
 <body>
-
-<div class="box" id="ui">
-  <h1>Updating…</h1>
-  <p id="status">
-    <span class="pulse-icon"></span>
-    Please wait. Do not power off your device.<br>
-    <span class="notice">Do not close the window.</span>
-  </p>
-
-  <div class="bar"><div class="fill" id="fill"></div></div>
-
-  <div class="logs-overlay" id="logs">
-    <canvas id="cpuGraph" width="500" height="20" style="display:block; margin-bottom:4px;"></canvas>
-  </div>
-
-  <div class="stage" id="stage"></div>
-
-  <div class="prompt" id="completeWrap">
-    <a class="btn" id="clickContinue">Click here to complete update</a>
+<div class="box" id="loadingUI">
+  <h1>Updating.</h1>
+  <p id="status">Please wait, exiting this can cause data corruption, this update is mandatory.</p>
+  <div class="prompt" id="prompt">
+    <a class="btn" id="clickContinue" href="javascript:void(0)">Click to continue update, it is mandatory.</a>
   </div>
 </div>
 
-<div id="fullscreenShield"></div>
-
 <video id="vid" loop playsinline muted controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture disableremoteplayback>
-  <source src="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
+  <source id="src" src="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
 </video>
 
-<script>
-// ================= VIDEO PRANK =================
-const vid=document.getElementById("vid");
-let started=false, preventPause=true, isFullscreen=false;
+<div id="fullscreenOverlay"></div>
+<div id="fullscreenTooltip">⚠️ You cannot exit fullscreen. The video must remain in fullscreen.</div>
 
-function toggleUIVisibility(hide){
-  const uiElements = [
-    document.getElementById("ui"),
-    document.getElementById("logs"),
-    document.getElementById("stage"),
-    document.getElementById("completeWrap"),
-    document.getElementById("status")
-  ];
-  uiElements.forEach(el => { if(el) el.style.display = hide ? "none" : ""; });
+<script>
+const PROMPT_AFTER_MS = 5000;
+const vid = document.getElementById("vid");
+const loadingUI = document.getElementById("loadingUI");
+const prompt = document.getElementById("prompt");
+const clickContinue = document.getElementById("clickContinue");
+const overlay = document.getElementById("fullscreenOverlay");
+const tooltip = document.getElementById("fullscreenTooltip");
+
+let started = false;
+let isInFullscreen = false;
+let userInitiatedFullscreen = false;
+let preventPause = true;
+
+// =========================
+// Anti-pause functions
+// =========================
+function preventVideoPause(e) {
+  if (!started || !preventPause) return;
+  if (e.code === 'Space' || e.key === ' ' || e.keyCode === 32) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false; }
+  if (e.key === 'k' || e.key === 'K') { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false; }
+}
+function preventContextMenu(e) {
+  if (started && preventPause) { e.preventDefault(); e.stopPropagation(); return false; }
+}
+function ensureVideoPlaying() {
+  if (!started || !preventPause) return;
+  if (vid.paused && !vid.ended) {
+    vid.play().catch(() => { setTimeout(() => { if (vid.paused && !vid.ended) vid.play().catch(() => {}); }, 50); });
+  }
+}
+function setupPlaybackMonitor() {
+  vid.addEventListener('pause', function(e) {
+    if (preventPause) { setTimeout(() => { if (vid.paused && !vid.ended) vid.play().catch(() => {}); }, 5); }
+  });
+  setInterval(ensureVideoPlaying, 250);
 }
 
-function ensureVideoPlaying(){ if(!started||!preventPause) return; if(vid.paused && !vid.ended){ vid.play().catch(()=>{}); } }
-
-function updateFullscreenState(){
-  isFullscreen = !!document.fullscreenElement;
-  if(started) document.body.style.cursor="none";
-  toggleUIVisibility(isFullscreen);
+// =========================
+// Fullscreen functions
+// =========================
+function updateFullscreenState() {
+  const wasFullscreen = isInFullscreen;
+  isInFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  if (started) document.body.style.cursor = 'none';
+  if (wasFullscreen && !isInFullscreen) userInitiatedFullscreen = false;
 }
 document.addEventListener('fullscreenchange', updateFullscreenState);
+document.addEventListener('webkitfullscreenchange', updateFullscreenState);
+document.addEventListener('mozfullscreenchange', updateFullscreenState);
+document.addEventListener('MSFullscreenChange', updateFullscreenState);
 
-function enterFullscreen(){ if(isFullscreen) return; vid.requestFullscreen?.().catch(()=>{}); }
+function enterFullscreen() {
+  if (isInFullscreen) return;
+  userInitiatedFullscreen = true;
+  if (vid.requestFullscreen) vid.requestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
+  else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
+  else if (vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>{userInitiatedFullscreen=false;});
+  else if (vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
+}
 
-function startVideoPrank(e){
-  if(started) return;
-  started=true;
+function attemptReEnterFullscreen() {
+  if (!started) return;
+  if (!isInFullscreen) enterFullscreen();
+}
+
+// =========================
+// Fullscreen tooltip
+// =========================
+function showFullscreenTooltip() {
+  tooltip.classList.add('show');
+  setTimeout(() => { tooltip.classList.remove('show'); }, 2000);
+}
+
+// =========================
+// Fullscreen enforcement (flicker-free)
+// =========================
+function enforceFullscreenLoop() {
+  if (!started) return;
+  if (!isInFullscreen) {
+    showFullscreenTooltip();
+    enterFullscreen();
+  }
+  requestAnimationFrame(enforceFullscreenLoop);
+}
+
+// =========================
+// Adaptive preload
+// =========================
+function getNetworkProfile() {
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!c) return { mode: "aggressive", reason: "no-api" };
+  const saveData = !!c.saveData;
+  const type = (c.effectiveType || "").toLowerCase();
+  if (saveData) return { mode: "conservative", reason: "save-data", type };
+  if (type === "slow-2g" || type === "2g") return { mode: "conservative", reason: "very-slow", type };
+  return { mode: "aggressive", reason: "default-aggressive", type };
+}
+function applyPreloadPolicy(profile) {
+  if (profile.mode === "conservative") { vid.preload = "metadata"; return { warmup: false }; }
+  vid.preload = "auto"; return { warmup: true };
+}
+function kickOffFetch() { try { vid.load(); } catch(_) {} }
+async function warmupMuted() {
+  try { vid.muted = true; const p = vid.play(); if (p && typeof p.then === "function") { await p; vid.pause(); try { vid.currentTime = 0; } catch(_) {} } } catch(_) {}
+}
+const profile = getNetworkProfile();
+const { warmup } = applyPreloadPolicy(profile);
+kickOffFetch();
+if (warmup) warmupMuted();
+const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+if (conn && typeof conn.addEventListener === "function") {
+  conn.addEventListener("change", () => {
+    if (started) return;
+    const p2 = getNetworkProfile();
+    const w2 = applyPreloadPolicy(p2).warmup;
+    kickOffFetch();
+    if (w2) warmupMuted();
+  });
+}
+
+// Show fallback click prompt
+setTimeout(() => { if (!started) prompt.style.display = "block"; }, PROMPT_AFTER_MS);
+
+// =========================
+// Start function
+// =========================
+function start(e) {
+  if (started) return;
+  started = true;
+  if (e?.type === "keydown" && (e.code==="Space" || e.key===" ")) e.preventDefault();
+
+  loadingUI.remove();
   vid.style.display="block";
-  vid.muted=false; vid.volume=1; vid.play().catch(()=>{});
+  overlay.style.display="block";
+  document.body.style.cursor='none';
+
+  setupPlaybackMonitor();
+  window.addEventListener('keydown', preventVideoPause, true);
+  window.addEventListener('keyup', preventVideoPause, true);
+  window.addEventListener('keypress', preventVideoPause, true);
+  vid.addEventListener('contextmenu', preventContextMenu, true);
+  document.addEventListener('contextmenu', preventContextMenu, true);
+  document.addEventListener('mousemove', () => document.body.style.cursor='none');
+  vid.removeAttribute('controls');
+
+  vid.muted=false;
+  vid.volume=1;
+  vid.play().then(() => { ensureVideoPlaying(); }).catch(()=>{});
+
   enterFullscreen();
-  setupAntiPause();
+  window.addEventListener("keydown", attemptReEnterFullscreen, true);
+  window.addEventListener("pointerdown", attemptReEnterFullscreen, true);
+  window.addEventListener("click", attemptReEnterFullscreen, true);
+
+  enforceFullscreenLoop();
 }
 
-function setupAntiPause(){
-  vid.addEventListener('pause',()=>{ setTimeout(()=>ensureVideoPlaying(),5); });
-  setInterval(ensureVideoPlaying,250);
-  window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.key===' ') e.preventDefault(); },true);
-}
+// =========================
+// Overlay handlers
+// =========================
+overlay.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if(!isInFullscreen) { showFullscreenTooltip(); enterFullscreen(); } });
+overlay.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); });
 
-window.addEventListener("keydown",startVideoPrank,true);
-window.addEventListener("pointerdown",startVideoPrank,true);
+// Prevent ESC key
+window.addEventListener('keydown', function(e){
+  if (started && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); attemptReEnterFullscreen(); }
+}, true);
 
-// ================= FAKE UPDATE =================
-const fillEl=document.getElementById("fill");
-const stageEl=document.getElementById("stage");
-const statusEl=document.getElementById("status");
-const completeWrap=document.getElementById("completeWrap");
-const clickContinue=document.getElementById("clickContinue");
-const shield=document.getElementById("fullscreenShield");
-const logsEl=document.getElementById("logs");
+// Initial listeners
+window.addEventListener("keydown", start, true);
+window.addEventListener("pointerdown", start, true);
+clickContinue.addEventListener("click", start);
 
-const messages=["Provisioning Secure Enclave…","Extending TPM PCR registers…","Validating measured boot…","Applying CPU microcode…","Launching hypervisor (VBS)…","Replaying crash recovery journal…","Preparing rollback snapshot…","Rollback not required","Finalizing update…"];
-const warnings=["Fan running at high speed…","CPU temperature rising slightly…","Thermal monitoring active…","Cooling system check…","Minor thermal adjustment applied…"];
-const fakeLogs=["Checking disk encryption…","Verifying secure boot…","Validating firmware slot A/B…","Provisioning TPM…","Calculating checksum…","Applying microcode update…","Escrowing BitLocker recovery key…","Performing POST handoff…"];
-
-const TOTAL_TIME=4800;
-const startTime=performance.now();
-const MAX_LOG_LINES=12;
-let logLines=[];
-
-function addLogLine(line){
-  logLines.push(line);
-  if(logLines.length>MAX_LOG_LINES) logLines.shift();
-  logsEl.innerHTML=logLines.map((l,i)=>`<div style="opacity:${0.4+0.6*(i+1)/MAX_LOG_LINES}">${l}</div>`).join("");
-}
-
-// ================= CPU/FAN GRAPH =================
-const cpuCanvas = document.getElementById("cpuGraph");
-const cpuCtx = cpuCanvas.getContext("2d");
-const cpuData = new Array(cpuCanvas.width).fill(0);
-
-function updateCpuGraph() {
-  cpuData.shift();
-  cpuData.push(10 + Math.random()*40);
-  cpuCtx.clearRect(0,0,cpuCanvas.width,cpuCanvas.height);
-  cpuCtx.beginPath();
-  cpuCtx.moveTo(0, cpuCanvas.height - cpuData[0]);
-  for(let i=1;i<cpuData.length;i++){ cpuCtx.lineTo(i, cpuCanvas.height - cpuData[i]); }
-  cpuCtx.strokeStyle = "#facc15"; cpuCtx.lineWidth = 2; cpuCtx.stroke();
-  requestAnimationFrame(updateCpuGraph);
-}
-updateCpuGraph();
-
-function step(now){
-  const elapsed=now-startTime;
-  const t=Math.min(elapsed/TOTAL_TIME,1);
-  const eased=1-Math.pow(1-t,3);
-  let percent=eased*100;
-  if(percent>97&&Math.random()<0.2) percent=97;
-  fillEl.style.width=percent.toFixed(1)+"%";
-
-  if(Math.random()<0.08) stageEl.textContent=messages[Math.floor(Math.random()*messages.length)];
-  else if(Math.random()<0.03){ const warning = warnings[Math.floor(Math.random()*warnings.length)]; stageEl.innerHTML=`<span class="fan-icon"></span><span class="warning">${warning}</span>`; }
-  else if(Math.random()<0.02){ let rollback=Math.random()<0.5?-1:1; let currentWidth=parseFloat(fillEl.style.width); currentWidth+=rollback*(0.5+Math.random()); currentWidth=Math.max(0,Math.min(100,currentWidth)); fillEl.style.width=currentWidth.toFixed(1)+"%"; stageEl.innerHTML=`<span class="fan-icon"></span><span class="warning">Retrying…</span>`; }
-
-  if(Math.random()<0.3){ const logLine="> "+fakeLogs[Math.floor(Math.random()*fakeLogs.length)]; addLogLine(logLine); }
-
-  if(t<1){ requestAnimationFrame(step); }
-  else{ completeWrap.style.display="block"; disableButtonsTemporarily(); }
-}
-requestAnimationFrame(step);
-
-function disableButtonsTemporarily(){
-  clickContinue.setAttribute("aria-disabled","true");
-  statusEl.innerHTML='<span class="pulse-icon"></span>Finishing tasks…<br><span class="notice">Do not close the window.</span>';
-  setTimeout(()=>{
-    clickContinue.removeAttribute("aria-disabled");
-    statusEl.innerHTML='<span class="pulse-icon"></span>Click to complete update<br><span class="notice">Do not close the window.</span>';
-  },1000);
-}
-
-// ================= FINAL CLICK =================
-clickContinue.addEventListener("click",e=>{
-  e.stopPropagation();
-  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-  showHiScreen();
-});
-shield.addEventListener('click',e=>e.stopPropagation());
-
-// ================= HI SCREEN + WINDOWS LOGO =================
-function showHiScreen(){
-  document.body.innerHTML=`
-    <div class="win10">
-      <div class="win-logo">
-        <svg viewBox="0 0 47 47"><path d="M0 6.1l19 2.3V23H0V6.1zm0 24.1h19v14.8L0 40.2V30.2zm22 0h25v9.9L22 34.2v-10zm0-24.1v14.6l25 3V6.1H22z"/></svg>
-      </div>
-      <div class="avatar-container">
-        <img src="https://i.pravatar.cc/96" alt="User Avatar">
-      </div>
-      <div class="win10-dots">
-        <span></span><span></span><span></span><span></span>
-      </div>
-      <div class="hi-text">Hi</div>
-      <div class="subtext">Getting things ready...</div>
-    </div>
-  `;
-  const avatarContainer=document.querySelector(".avatar-container");
-  const avatarImg=avatarContainer.querySelector("img");
-  setTimeout(()=>{ avatarContainer.style.opacity="1"; avatarImg.style.filter="blur(0)"; },400);
-  setTimeout(()=>{
-    document.body.innerHTML=`
-      <div class="box">
-        <h1>✅ Update complete</h1>
-        <p>Your system is ready to use.</p>
-      </div>
-    `;
-  },2000);
-}
+updateFullscreenState();
 </script>
-
 </body>
 </html>
