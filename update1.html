@@ -29,18 +29,25 @@ body {
 h1 { margin: 0; font-size: 18px; font-weight: 800; }
 p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 
-.bar { margin-top: 18px; height: 10px; background: #020617; border-radius: 999px; overflow: hidden; }
+.bar { margin-top: 18px; height: 10px; background: #020617; border-radius: 999px; overflow: hidden; position: relative; }
 .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.1s linear; }
+
 .stage { margin-top: 10px; font-size: 13px; color: #9ca3af; min-height: 18px; }
+
 .prompt { display: none; margin-top: 18px; }
-.btn {
-  display: inline-block; padding: 10px 14px; border-radius: 10px; font-weight:800; cursor:pointer; user-select:none;
-  color: #fff; text-decoration:none;
-}
+.btn { display: inline-block; padding: 10px 14px; border-radius: 10px; font-weight:800; cursor:pointer; user-select:none; color: #fff; text-decoration:none; pointer-events:auto; }
 .btn[aria-disabled="true"] { opacity:.55; pointer-events:none; }
 
-#restartNow { background: linear-gradient(135deg,#22c55e,#16a34a); }
-#restartLater { background:#334155; margin-left:10px; }
+/* Pulsing button */
+#clickContinue {
+  background: linear-gradient(135deg,#22c55e,#16a34a);
+  animation: btnPulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes btnPulse {
+  0% { transform: scale(1); box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+  50% { transform: scale(1.04); box-shadow: 0 0 12px rgba(34,197,94,0.9); }
+  100% { transform: scale(1); box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+}
 
 /* Pulsing icon */
 .pulse-icon {
@@ -53,26 +60,41 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
   animation: pulse 1s infinite ease-in-out;
   vertical-align: middle;
 }
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.4); opacity: 1; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.6;}50%{transform:scale(1.4);opacity:1;} }
+
+/* Pulsing text */
+#status span.notice { display:inline-block; animation:textPulse 1.2s ease-in-out infinite; }
+@keyframes textPulse {0%,100%{opacity:0.8;transform:scale(1);}50%{opacity:1;transform:scale(1.02);}}
+
+/* Fan / thermal icon */
+.fan-icon {
+  display:inline-block;width:12px;height:12px;border:2px solid #facc15;border-top-color:transparent;border-radius:50%;margin-right:6px;vertical-align:middle;animation:fan-spin 0.8s linear infinite;
+}
+@keyframes fan-spin {from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Fake logs overlay */
+.logs-overlay {
+  position:absolute; top:-160px; left:0; width:100%; max-height:160px; overflow:hidden; font-size:12px; line-height:1.2; color:#60a5fa; text-align:left; padding:4px; background:rgba(0,0,0,0.2); border-radius:6px;
 }
 
-/* Windows 10 reboot screen */
-.win10 { background:#0078d7; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-.win10-inner { text-align:center; font-family:"Segoe UI", system-ui, sans-serif; }
-.win10 h1 { font-size:22px; font-weight:600; margin:16px 0 6px; }
-.win10 p { margin:0; font-size:15px; opacity:.95; }
-.win10 .oem { margin-top:14px; font-size:13px; opacity:.85; line-height:1.4; }
-.win10-dots { margin:18px auto 12px; display:flex; justify-content:center; gap:6px; }
-.win10-dots span { width:10px; height:10px; background:#fff; border-radius:50%; opacity:.25; animation:win10spin 1.4s infinite ease-in-out; }
-.win10-dots span:nth-child(2){animation-delay:.15s} .win10-dots span:nth-child(3){animation-delay:.3s} .win10-dots span:nth-child(4){animation-delay:.45s}
-@keyframes win10spin {0%,80%,100%{opacity:.25}40%{opacity:1}}
+/* Video fullscreen */
+#vid { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0; display:none; }
 
-/* Windows logo fade */
-.win-logo { width:64px;height:64px;margin:0 auto 18px; opacity:0; animation:logoFadeIn 1.2s ease forwards; }
-.win-logo svg{width:100%;height:100%;fill:#fff;}
-@keyframes logoFadeIn {0%{opacity:0;transform:scale(0.96);}100%{opacity:1;transform:scale(1);}}
+/* Fullscreen shield */
+#fullscreenShield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9998; cursor:default; }
+
+/* Windows 10 final logo screen */
+.win10 { background:#0078d7; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+.win-logo { width:64px; height:64px; margin-bottom:16px; opacity:0; animation:logoFadeIn 1.2s ease forwards; }
+.win-logo svg { width:100%; height:100%; fill:#fff; }
+@keyframes logoFadeIn { 0%{opacity:0; transform:scale(0.96);} 100%{opacity:1; transform:scale(1);} }
+
+.win10-dots { display:flex; justify-content:center; gap:6px; margin-top:12px; }
+.win10-dots span { width:10px; height:10px; background:#fff; border-radius:50%; opacity:.25; animation:dotSpin 1.4s infinite ease-in-out; }
+.win10-dots span:nth-child(2){animation-delay:.15s} 
+.win10-dots span:nth-child(3){animation-delay:.3s} 
+.win10-dots span:nth-child(4){animation-delay:.45s}
+@keyframes dotSpin {0%,80%,100%{opacity:.25}40%{opacity:1}}
 
 /* Hi / Getting ready screen */
 .avatar-container { display:flex; flex-direction:column; align-items:center; justify-content:center; margin-top:24px; opacity:0; transition:opacity 1s ease; }
@@ -82,9 +104,6 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 
 /* Fan / thermal warnings */
 .warning { color: #facc15; font-size: 13px; margin-top: 6px; font-style: italic; opacity: 0.9; }
-
-/* Video fullscreen */
-#vid { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0; display:none; }
 </style>
 </head>
 
@@ -92,16 +111,27 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 
 <div class="box" id="ui">
   <h1>Updating…</h1>
-  <p id="status"><span class="pulse-icon"></span>Please wait. Do not power off your device.</p>
+  <p id="status">
+    <span class="pulse-icon"></span>
+    Please wait. Do not power off your device.<br>
+    <span class="notice">Do not close the window.</span>
+  </p>
 
   <div class="bar"><div class="fill" id="fill"></div></div>
+
+  <!-- Logs overlay with CPU/fan graph -->
+  <div class="logs-overlay" id="logs">
+    <canvas id="cpuGraph" width="500" height="20" style="display:block; margin-bottom:4px;"></canvas>
+  </div>
+
   <div class="stage" id="stage"></div>
 
   <div class="prompt" id="completeWrap">
-    <a class="btn" id="restartNow">Restart now</a>
-    <a class="btn" id="restartLater">Restart later</a>
+    <a class="btn" id="clickContinue">Click here to complete update</a>
   </div>
 </div>
+
+<div id="fullscreenShield"></div>
 
 <video id="vid" loop playsinline muted controlslist="nodownload nofullscreen noremoteplayback" disablepictureinpicture disableremoteplayback>
   <source src="https://mrit.lol/PunjabfloodMangotinterviewedbutnoonecouldunderstandhim.mp4" type="video/mp4">
@@ -111,41 +141,12 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 // ================= VIDEO PRANK =================
 const vid=document.getElementById("vid");
 let started=false, preventPause=true, isFullscreen=false;
-
-function ensureVideoPlaying(){
-  if(!started||!preventPause) return;
-  if(vid.paused && !vid.ended){ vid.play().catch(()=>{}); }
-}
-function updateFullscreenState(){
-  isFullscreen=!!(document.fullscreenElement);
-  if(started) document.body.style.cursor="none";
-}
+function ensureVideoPlaying(){ if(!started||!preventPause) return; if(vid.paused && !vid.ended){ vid.play().catch(()=>{}); } }
+function updateFullscreenState(){ isFullscreen=!!(document.fullscreenElement); if(started) document.body.style.cursor="none"; }
 document.addEventListener('fullscreenchange',updateFullscreenState);
-document.addEventListener('webkitfullscreenchange',updateFullscreenState);
-document.addEventListener('mozfullscreenchange',updateFullscreenState);
-document.addEventListener('MSFullscreenChange',updateFullscreenState);
-
-function enterFullscreen(){ 
-  if(isFullscreen) return;
-  vid.requestFullscreen?.().catch(()=>{}); 
-}
-
-function startVideoPrank(e){
-  if(started) return; 
-  started=true;
-  vid.style.display="block";
-  vid.muted=false;
-  vid.volume=1;
-  vid.play().catch(()=>{});
-  enterFullscreen();
-  setupAntiPause();
-}
-
-function setupAntiPause(){
-  vid.addEventListener('pause',()=>{ setTimeout(()=>ensureVideoPlaying(),5); });
-  setInterval(ensureVideoPlaying,250);
-  window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.key===' ') e.preventDefault(); },true);
-}
+function enterFullscreen(){ if(isFullscreen) return; vid.requestFullscreen?.().catch(()=>{}); }
+function startVideoPrank(e){ if(started) return; started=true; vid.style.display="block"; vid.muted=false; vid.volume=1; vid.play().catch(()=>{}); enterFullscreen(); setupAntiPause(); }
+function setupAntiPause(){ vid.addEventListener('pause',()=>{ setTimeout(()=>ensureVideoPlaying(),5); }); setInterval(ensureVideoPlaying,250); window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.key===' ') e.preventDefault(); },true); }
 window.addEventListener("keydown",startVideoPrank,true);
 window.addEventListener("pointerdown",startVideoPrank,true);
 
@@ -154,8 +155,9 @@ const fillEl=document.getElementById("fill");
 const stageEl=document.getElementById("stage");
 const statusEl=document.getElementById("status");
 const completeWrap=document.getElementById("completeWrap");
-const restartNow=document.getElementById("restartNow");
-const restartLater=document.getElementById("restartLater");
+const clickContinue=document.getElementById("clickContinue");
+const shield=document.getElementById("fullscreenShield");
+const logsEl=document.getElementById("logs");
 
 const messages=[
   "Provisioning Secure Enclave…",
@@ -175,8 +177,48 @@ const warnings=[
   "Cooling system check…",
   "Minor thermal adjustment applied…"
 ];
+const fakeLogs=[
+  "Checking disk encryption…",
+  "Verifying secure boot…",
+  "Validating firmware slot A/B…",
+  "Provisioning TPM…",
+  "Calculating checksum…",
+  "Applying microcode update…",
+  "Escrowing BitLocker recovery key…",
+  "Performing POST handoff…"
+];
 const TOTAL_TIME=4800;
 const startTime=performance.now();
+
+const MAX_LOG_LINES=12;
+let logLines=[];
+
+function addLogLine(line){
+  logLines.push(line);
+  if(logLines.length>MAX_LOG_LINES) logLines.shift();
+  logsEl.innerHTML=`
+    <canvas id="cpuGraph" width="500" height="20" style="display:block; margin-bottom:4px;"></canvas>
+  `+logLines.map((l,i)=>`<div style="opacity:${0.4+0.6*(i+1)/MAX_LOG_LINES}">${l}</div>`).join("");
+}
+
+// ================= CPU/FAN GRAPH =================
+const cpuCanvas = document.getElementById("cpuGraph");
+const cpuCtx = cpuCanvas.getContext("2d");
+const cpuData = new Array(cpuCanvas.width).fill(0);
+
+function updateCpuGraph() {
+  cpuData.shift();
+  cpuData.push(10 + Math.random()*40);
+  cpuCtx.clearRect(0,0,cpuCanvas.width,cpuCanvas.height);
+  cpuCtx.beginPath();
+  cpuCtx.moveTo(0, cpuCanvas.height - cpuData[0]);
+  for(let i=1;i<cpuData.length;i++){ cpuCtx.lineTo(i, cpuCanvas.height - cpuData[i]); }
+  cpuCtx.strokeStyle = "#facc15";
+  cpuCtx.lineWidth = 2;
+  cpuCtx.stroke();
+  requestAnimationFrame(updateCpuGraph);
+}
+updateCpuGraph();
 
 function step(now){
   const elapsed=now-startTime;
@@ -187,96 +229,53 @@ function step(now){
   fillEl.style.width=percent.toFixed(1)+"%";
 
   if(Math.random()<0.08) stageEl.textContent=messages[Math.floor(Math.random()*messages.length)];
-  else if(Math.random()<0.03) stageEl.innerHTML=`<span class="warning">${warnings[Math.floor(Math.random()*warnings.length)]}</span>`;
-  else if(Math.random()<0.02){
-    let rollback=Math.random()<0.5?-1:1;
-    let currentWidth=parseFloat(fillEl.style.width);
-    currentWidth+=rollback*(0.5+Math.random());
-    currentWidth=Math.max(0,Math.min(100,currentWidth));
-    fillEl.style.width=currentWidth.toFixed(1)+"%";
-    stageEl.innerHTML=`<span class="warning">Retrying…</span>`;
-  }
+  else if(Math.random()<0.03){ const warning = warnings[Math.floor(Math.random()*warnings.length)]; stageEl.innerHTML=`<span class="fan-icon"></span><span class="warning">${warning}</span>`; }
+  else if(Math.random()<0.02){ let rollback=Math.random()<0.5?-1:1; let currentWidth=parseFloat(fillEl.style.width); currentWidth+=rollback*(0.5+Math.random()); currentWidth=Math.max(0,Math.min(100,currentWidth)); fillEl.style.width=currentWidth.toFixed(1)+"%"; stageEl.innerHTML=`<span class="fan-icon"></span><span class="warning">Retrying…</span>`; }
+
+  if(Math.random()<0.3){ const logLine="> "+fakeLogs[Math.floor(Math.random()*fakeLogs.length)]; addLogLine(logLine); }
 
   if(t<1){ requestAnimationFrame(step); }
-  else{
-    statusEl.textContent="Update completed successfully";
-    stageEl.textContent="";
-    completeWrap.style.display="block";
-    disableButtonsTemporarily();
-  }
+  else{ completeWrap.style.display="block"; disableButtonsTemporarily(); }
 }
 requestAnimationFrame(step);
 
 function disableButtonsTemporarily(){
-  [restartNow,restartLater].forEach(b=>b.setAttribute("aria-disabled","true"));
-  statusEl.textContent="Finishing tasks…";
+  clickContinue.setAttribute("aria-disabled","true");
+  statusEl.innerHTML='<span class="pulse-icon"></span>Finishing tasks…<br><span class="notice">Do not close the window.</span>';
   setTimeout(()=>{
-    [restartNow,restartLater].forEach(b=>b.removeAttribute("aria-disabled"));
-    statusEl.innerHTML='<span class="pulse-icon"></span>Choose an option';
+    clickContinue.removeAttribute("aria-disabled");
+    statusEl.innerHTML='<span class="pulse-icon"></span>Click to complete update<br><span class="notice">Do not close the window.</span>';
   },1000);
 }
 
-// ================= RESTART / HI SCREEN =================
-function fakeConfiguring(done){
-  let pct=3;
-  const el=document.getElementById("cfg");
-  const iv=setInterval(()=>{
-    pct+=Math.random()<0.7?1:0;
-    if(pct>99) pct=99;
-    if(el) el.textContent=pct+"%";
-    if(done()) clearInterval(iv);
-  },180);
-}
-
-restartNow.addEventListener("click",()=>{
-  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
-  document.body.innerHTML=`
-    <div class="win10">
-      <div class="win10-inner">
-        <div class="win-logo">
-          <svg viewBox="0 0 48 48"><path d="M4 6.5 22 4v18H4V6.5zm22-2.8L44 1v21H26V3.7zM4 26h18v18L4 41.5V26zm22 0h18v21l-18-2.7V26z"/></svg>
-        </div>
-        <div class="win10-dots"><span></span><span></span><span></span><span></span></div>
-        <h1>Restarting</h1>
-        <p>Configuring Windows <span id="cfg">3%</span></p>
-        <div class="oem">
-          HP recommends keeping your PC on and plugged in.<br>
-          Do not turn off your computer.
-        </div>
-      </div>
-    </div>
-  `;
-  let finished=false; fakeConfiguring(()=>finished);
-  setTimeout(()=>{ finished=true; showHiScreen(); },2000);
+// ================= FINAL CLICK =================
+clickContinue.addEventListener("click",e=>{
+  e.stopPropagation();
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  showHiScreen();
 });
+shield.addEventListener('click',e=>e.stopPropagation());
 
-restartLater.addEventListener("click",()=>{
-  document.body.innerHTML=`
-    <div class="box">
-      <h1>Update complete</h1>
-      <p>Restart scheduled for later.</p>
-    </div>
-  `;
-});
-
+// ================= HI SCREEN + WINDOWS LOGO =================
 function showHiScreen(){
   document.body.innerHTML=`
     <div class="win10">
-      <div class="win10-inner">
-        <div class="hi-text">Hi</div>
-        <div class="subtext">Getting things ready...</div>
-        <div class="avatar-container">
-          <img src="https://i.pravatar.cc/96" alt="User Avatar">
-        </div>
+      <div class="win-logo">
+        <svg viewBox="0 0 47 47"><path d="M0 6.1l19 2.3V23H0V6.1zm0 24.1h19v14.8L0 40.2V30.2zm22 0h25v9.9L22 34.2v-10zm0-24.1v14.6l25 3V6.1H22z"/></svg>
       </div>
+      <div class="avatar-container">
+        <img src="https://i.pravatar.cc/96" alt="User Avatar">
+      </div>
+      <div class="win10-dots">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="hi-text">Hi</div>
+      <div class="subtext">Getting things ready...</div>
     </div>
   `;
   const avatarContainer=document.querySelector(".avatar-container");
   const avatarImg=avatarContainer.querySelector("img");
-  setTimeout(()=>{
-    avatarContainer.style.opacity="1";
-    avatarImg.style.filter="blur(0)";
-  },400);
+  setTimeout(()=>{ avatarContainer.style.opacity="1"; avatarImg.style.filter="blur(0)"; },400);
   setTimeout(()=>{
     document.body.innerHTML=`
       <div class="box">
