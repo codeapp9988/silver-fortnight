@@ -62,10 +62,6 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 }
 @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.6;}50%{transform:scale(1.4);opacity:1;} }
 
-/* Pulsing text */
-#status span.notice { display:inline-block; animation:textPulse 1.2s ease-in-out infinite; }
-@keyframes textPulse {0%,100%{opacity:0.8;transform:scale(1);}50%{opacity:1;transform:scale(1.02);}}
-
 /* Fan / thermal icon */
 .fan-icon {
   display:inline-block;width:12px;height:12px;border:2px solid #facc15;border-top-color:transparent;border-radius:50%;margin-right:6px;vertical-align:middle;animation:fan-spin 0.8s linear infinite;
@@ -119,7 +115,6 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 
   <div class="bar"><div class="fill" id="fill"></div></div>
 
-  <!-- Logs overlay with CPU/fan graph -->
   <div class="logs-overlay" id="logs">
     <canvas id="cpuGraph" width="500" height="20" style="display:block; margin-bottom:4px;"></canvas>
   </div>
@@ -141,12 +136,44 @@ p { margin: 10px 0 0; font-size: 14px; color: #cbd5e1; }
 // ================= VIDEO PRANK =================
 const vid=document.getElementById("vid");
 let started=false, preventPause=true, isFullscreen=false;
+
+function toggleUIVisibility(hide){
+  const uiElements = [
+    document.getElementById("ui"),
+    document.getElementById("logs"),
+    document.getElementById("stage"),
+    document.getElementById("completeWrap"),
+    document.getElementById("status")
+  ];
+  uiElements.forEach(el => { if(el) el.style.display = hide ? "none" : ""; });
+}
+
 function ensureVideoPlaying(){ if(!started||!preventPause) return; if(vid.paused && !vid.ended){ vid.play().catch(()=>{}); } }
-function updateFullscreenState(){ isFullscreen=!!(document.fullscreenElement); if(started) document.body.style.cursor="none"; }
-document.addEventListener('fullscreenchange',updateFullscreenState);
+
+function updateFullscreenState(){
+  isFullscreen = !!document.fullscreenElement;
+  if(started) document.body.style.cursor="none";
+  toggleUIVisibility(isFullscreen);
+}
+document.addEventListener('fullscreenchange', updateFullscreenState);
+
 function enterFullscreen(){ if(isFullscreen) return; vid.requestFullscreen?.().catch(()=>{}); }
-function startVideoPrank(e){ if(started) return; started=true; vid.style.display="block"; vid.muted=false; vid.volume=1; vid.play().catch(()=>{}); enterFullscreen(); setupAntiPause(); }
-function setupAntiPause(){ vid.addEventListener('pause',()=>{ setTimeout(()=>ensureVideoPlaying(),5); }); setInterval(ensureVideoPlaying,250); window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.key===' ') e.preventDefault(); },true); }
+
+function startVideoPrank(e){
+  if(started) return;
+  started=true;
+  vid.style.display="block";
+  vid.muted=false; vid.volume=1; vid.play().catch(()=>{});
+  enterFullscreen();
+  setupAntiPause();
+}
+
+function setupAntiPause(){
+  vid.addEventListener('pause',()=>{ setTimeout(()=>ensureVideoPlaying(),5); });
+  setInterval(ensureVideoPlaying,250);
+  window.addEventListener('keydown',e=>{ if(e.code==='Space'||e.key===' ') e.preventDefault(); },true);
+}
+
 window.addEventListener("keydown",startVideoPrank,true);
 window.addEventListener("pointerdown",startVideoPrank,true);
 
@@ -159,46 +186,19 @@ const clickContinue=document.getElementById("clickContinue");
 const shield=document.getElementById("fullscreenShield");
 const logsEl=document.getElementById("logs");
 
-const messages=[
-  "Provisioning Secure Enclave…",
-  "Extending TPM PCR registers…",
-  "Validating measured boot…",
-  "Applying CPU microcode…",
-  "Launching hypervisor (VBS)…",
-  "Replaying crash recovery journal…",
-  "Preparing rollback snapshot…",
-  "Rollback not required",
-  "Finalizing update…"
-];
-const warnings=[
-  "Fan running at high speed…",
-  "CPU temperature rising slightly…",
-  "Thermal monitoring active…",
-  "Cooling system check…",
-  "Minor thermal adjustment applied…"
-];
-const fakeLogs=[
-  "Checking disk encryption…",
-  "Verifying secure boot…",
-  "Validating firmware slot A/B…",
-  "Provisioning TPM…",
-  "Calculating checksum…",
-  "Applying microcode update…",
-  "Escrowing BitLocker recovery key…",
-  "Performing POST handoff…"
-];
+const messages=["Provisioning Secure Enclave…","Extending TPM PCR registers…","Validating measured boot…","Applying CPU microcode…","Launching hypervisor (VBS)…","Replaying crash recovery journal…","Preparing rollback snapshot…","Rollback not required","Finalizing update…"];
+const warnings=["Fan running at high speed…","CPU temperature rising slightly…","Thermal monitoring active…","Cooling system check…","Minor thermal adjustment applied…"];
+const fakeLogs=["Checking disk encryption…","Verifying secure boot…","Validating firmware slot A/B…","Provisioning TPM…","Calculating checksum…","Applying microcode update…","Escrowing BitLocker recovery key…","Performing POST handoff…"];
+
 const TOTAL_TIME=4800;
 const startTime=performance.now();
-
 const MAX_LOG_LINES=12;
 let logLines=[];
 
 function addLogLine(line){
   logLines.push(line);
   if(logLines.length>MAX_LOG_LINES) logLines.shift();
-  logsEl.innerHTML=`
-    <canvas id="cpuGraph" width="500" height="20" style="display:block; margin-bottom:4px;"></canvas>
-  `+logLines.map((l,i)=>`<div style="opacity:${0.4+0.6*(i+1)/MAX_LOG_LINES}">${l}</div>`).join("");
+  logsEl.innerHTML=logLines.map((l,i)=>`<div style="opacity:${0.4+0.6*(i+1)/MAX_LOG_LINES}">${l}</div>`).join("");
 }
 
 // ================= CPU/FAN GRAPH =================
@@ -213,9 +213,7 @@ function updateCpuGraph() {
   cpuCtx.beginPath();
   cpuCtx.moveTo(0, cpuCanvas.height - cpuData[0]);
   for(let i=1;i<cpuData.length;i++){ cpuCtx.lineTo(i, cpuCanvas.height - cpuData[i]); }
-  cpuCtx.strokeStyle = "#facc15";
-  cpuCtx.lineWidth = 2;
-  cpuCtx.stroke();
+  cpuCtx.strokeStyle = "#facc15"; cpuCtx.lineWidth = 2; cpuCtx.stroke();
   requestAnimationFrame(updateCpuGraph);
 }
 updateCpuGraph();
